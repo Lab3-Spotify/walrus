@@ -1,0 +1,53 @@
+version: '3.7'
+
+networks:
+  pg-backend:
+
+services:
+  backendContainer:
+    build:
+      context: .
+
+    image: lab3-spotify/familiarity-playlist_backend:v1
+
+    container_name: backendContainer
+
+    ports: 
+    - "0.0.0.0:8080:8080"
+
+    networks:
+    - pg-backend
+
+    env_file:
+    - .env
+
+    environment:
+    - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+    - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+
+    volumes:
+    - ./:/usr/src/app
+
+  postgres:
+    image: postgres:14.2
+
+    ports:
+    - 5432:5432
+
+    networks:
+    - pg-backend
+
+    env_file:
+    - .env
+
+    environment:
+    - POSTGRES_USER=${POSTGRES_USER}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+    depends_on:
+    - backendContainer
+
+    volumes:
+    - type: bind
+      source: ./postgres_data
+      target: /var/lib/postgresql/data/
