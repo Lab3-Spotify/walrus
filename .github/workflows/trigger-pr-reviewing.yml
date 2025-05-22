@@ -1,0 +1,39 @@
+name: Update ClickUp Task Status on PR Open
+
+on:
+  pull_request:
+    types: [opened]
+    branches: [master]
+
+jobs:
+  update_clickup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract ClickUp Task IDs
+        id: extract
+        run: |
+          body="${{ github.event.pull_request.body }}"
+          tasks=$(echo "$body" \
+            | grep -oE 'CU-[A-Za-z0-9]{9}' \
+            | sed 's/^CU-//' \
+            | sort -u \
+            | paste -sd ',' -)
+          echo "tasks=$tasks" >> $GITHUB_OUTPUT
+
+      - name: Update ClickUp Tasks
+        if: steps.extract.outputs.tasks != ''
+        env:
+          API_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
+          TASK_IDS: ${{ steps.extract.outputs.tasks }}
+        run: |
+          IFS=',' read -ra IDS <<< "$TASK_IDS"
+          for ID in "${IDS[@]}"; do
+            echo "→ Updating task $ID to “pr reviewing”"
+            curl --silent --fail -X PUT "https://api.clickup.com/api/v2/task/$ID" \
+              -H "Authorization: $API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"status":"pr reviewing"}' \
+              && echo "✔ $ID updated" \
+              || echo "✖ failed to update $ID"
+          done
