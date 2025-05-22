@@ -1,0 +1,46 @@
+# .github/workflows/update_clickup.yml
+name: Update ClickUp Task Status on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+
+jobs:
+  update_clickup:
+    # 只有當 PR.closed 事件且 merged 為 true 時才執行
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract ClickUp Task IDs
+        id: extract
+        run: |
+          # 1. 用 jq 從 event payload 讀取 PR body
+          body=$(jq -r .pull_request.body < "$GITHUB_EVENT_PATH")
+
+          # 2. 擷取 CU-XXXXXXXXX 並去掉前綴，合併成逗號列表
+          tasks=$(echo "$body" \
+            | grep -oE 'CU-[A-Za-z0-9]{9}' \
+            | sed 's/^CU-//' \
+            | sort -u \
+            | paste -sd ',' -)
+
+          echo "tasks=$tasks" >> $GITHUB_OUTPUT
+
+      - name: Update ClickUp Tasks to “wait for testing”
+        if: steps.extract.outputs.tasks != ''
+        env:
+          API_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
+          TASK_IDS: ${{ steps.extract.outputs.tasks }}
+        run: |
+          IFS=',' read -ra IDS <<< "$TASK_IDS"
+          for ID in "${IDS[@]}"; do
+            echo "→ Updating task $ID to \"wait for testing\""
+            curl --silent --fail -X PUT "https://api.clickup.com/api/v2/task/$ID" \
+              -H "Authorization: $API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"status":"wait for testing"}' \
+              && echo "✔ $ID updated" \
+              || echo "✖ failed to update $ID"
+          done
