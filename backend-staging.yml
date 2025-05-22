@@ -1,0 +1,49 @@
+services:
+  walrus-db:
+    image: postgres:14
+    restart: always
+    env_file:
+      - ./env/walrus-staging.env
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - walrus-network
+    ports:
+      - "5432:5432"
+
+  walrus-redis:
+    restart: always
+    image: redis:7.4.2
+    env_file:
+      - ./env/walrus-staging.env
+    volumes:
+      - redis-data:/data
+    networks:
+      - walrus-network
+    ports:
+      - "6379:6379"
+
+  walrus:
+    build: .
+    depends_on:
+      - walrus-db
+      - walrus-redis
+    env_file:
+      - ./env/walrus-staging.env
+    volumes:
+      - ./:/usr/src/app
+    networks:
+      - walrus-network
+    ports:
+      - "8000:8000"
+    # command: >
+    #   bash -c "python manage.py migrate &&
+    #            python manage.py runserver 0.0.0.0:8000"
+
+networks:
+  walrus-network:
+    driver: bridge
+
+volumes:
+  db_data:
+  redis-data:
