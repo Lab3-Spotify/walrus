@@ -2,7 +2,7 @@ FROM python:3.10.13-slim
 
 WORKDIR /usr/src/app
 
-# if you want to install package to ENV, please: 
+# if you want to install package to ENV, please:
 # 1. intall poetry (uncomment below)
 # 2. use `poetry add {package_name}` in the container
 # 3. run export-requirements.sh to get the newest requirements
