@@ -1,0 +1,24 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace       # 刪除行尾多餘空白
+      - id: end-of-file-fixer         # 確保檔案以單一 newline 結尾
+      - id: check-yaml                # 檢查 YAML 格式
+      - id: check-added-large-files   # 防止不小心新增過大檔案
+      - id: double-quote-string-fixer # 將雙引號轉換為單引號
+
+  # Black：程式碼格式化
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        args: ["--line-length=88", "--skip-string-normalization"] # 避免跟double-quote-string-fixer打架，因為black預設為雙引號
+
+
+  # isort：自動排序 import
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile=black"]     # 配合 Black 的風格

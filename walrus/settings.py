@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,9 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-START_APPS = [
-
-]
+START_APPS = []
 
 INSTALLED_APPS += START_APPS
 
@@ -100,13 +98,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE":   "django.db.backends.postgresql",
-        "NAME":     os.environ.get("POSTGRES_DB", "walrus"),
-        "USER":     os.environ.get("POSTGRES_USER", "walrus"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "p@ss1234"),
-        "HOST":     os.environ.get("POSTGRES_HOST", "walrus-db"),
-        "PORT":     os.environ.get("POSTGRES_PORT", "5432"),
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB', 'walrus'),
+        'USER': os.environ.get('POSTGRES_USER', 'walrus'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'p@ss1234'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'walrus-db'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
 
@@ -160,15 +158,15 @@ DEFAULT_ALIAS = 'default'
 
 CACHES = {
     DEFAULT_ALIAS: {
-        "BACKEND": 'django_redis.cache.RedisCache',
+        'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': REDIS_CACHE_LOCATION,
         'TIMEOUT': 259200,
         'OPTIONS': {
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
             'IGNORE_EXCEPTIONS': True,
-        }
+        },
     },
 }
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
