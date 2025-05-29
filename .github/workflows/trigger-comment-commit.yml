@@ -1,0 +1,48 @@
+# .github/workflows/update_clickup.yml
+name: Add Github Commit URL to ClickUp Task Comment
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+
+jobs:
+  update_clickup:
+    # 只有當 PR.closed 事件且 merged 為 true 時才執行
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract ClickUp Task IDs
+        id: extract
+        run: |
+          # 1. 用 jq 從 event payload 讀取 PR body
+          body=$(jq -r .pull_request.body < "$GITHUB_EVENT_PATH")
+          # 2. 擷取 CU-XXXXXXXXX 並去掉前綴，合併成逗號列表
+          tasks=$(echo "$body" \
+            | grep -oE 'CU-[A-Za-z0-9]{9}' \
+            | sed 's/^CU-//' \
+            | sort -u \
+            | paste -sd ',' -)
+          echo "tasks=$tasks" >> $GITHUB_OUTPUT
+
+      - name: Post Merge Commit URL as ClickUp Comment
+        if: steps.extract.outputs.tasks != ''
+        env:
+          API_TOKEN: ${{ secrets.CLICKUP_API_TOKEN }}
+          TASK_IDS: ${{ steps.extract.outputs.tasks }}
+          REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          # 組出 commit 的網頁連結
+          COMMIT_URL="https://github.com/${REPO}/commit/${COMMIT_SHA}"
+          IFS=',' read -ra IDS <<< "$TASK_IDS"
+          for ID in "${IDS[@]}"; do
+            echo "→ Posting commit link to task $ID"
+            curl --silent --fail -X POST "https://api.clickup.com/api/v2/task/${ID}/comment" \
+              -H "Authorization: ${API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"comment_text\":\"Merged commit: ${COMMIT_URL}\"}" \
+              && echo "✔ Comment added to $ID" \
+              || echo "✖ failed to comment on $ID"
+          done
