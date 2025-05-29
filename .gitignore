@@ -175,3 +175,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+.gitsecret/keys/random_seed
+!*.secret
