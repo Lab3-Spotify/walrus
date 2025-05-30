@@ -30,15 +30,16 @@ services:
       - walrus-redis
     env_file:
       - ./env/walrus-local.env
+    working_dir: /usr/src/app
     volumes:
       - ./:/usr/src/app
     networks:
       - walrus-network
     ports:
       - "8000:8000"
-    # command: >
-    #   bash -c "python manage.py migrate &&
-    #            python manage.py runserver 0.0.0.0:8000"
+    command: >
+      bash -c "python manage.py migrate &&
+              python manage.py runserver 0.0.0.0:8000"
 
 networks:
   walrus-network:
