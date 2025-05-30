@@ -21,8 +21,8 @@ COPY . .
 
 EXPOSE 8000
 
-ENTRYPOINT ["bash", "-c"]
-# CMD ["python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+# ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+CMD ["python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
 
 
-CMD ["tail -f /dev/null"]
+# CMD ["tail -f /dev/null"]
