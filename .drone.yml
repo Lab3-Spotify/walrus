@@ -35,16 +35,17 @@
   - "kubectl set image deployment/walrus walrus=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
   - "kubectl rollout status deployment/walrus --namespace=walrus || exit 1"
   - "echo Deployment success!"
-  "image": "plugins/kubectl:v1.6.0"
+  "image": "sinlead/drone-kubectl"
   "name": "deploy to k8s"
   "settings":
-    "cacert":
+    "kubernetes_cert":
       "from_secret": "K8S_CA"
-    "host":
+    "kubernetes_server":
       "from_secret": "K8S_SERVER"
-    "namespace": "walrus"
-    "token":
+    "kubernetes_token":
       "from_secret": "K8S_TOKEN"
+    "namespace": "walrus"
+    "startTimeout": 240
 "trigger":
   "branch":
   - "master"
