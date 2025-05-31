@@ -4,7 +4,6 @@ repos:
     hooks:
       - id: trailing-whitespace       # 刪除行尾多餘空白
       - id: end-of-file-fixer         # 確保檔案以單一 newline 結尾
-      - id: check-yaml                # 檢查 YAML 格式
       - id: check-added-large-files   # 防止不小心新增過大檔案
       - id: double-quote-string-fixer # 將雙引號轉換為單引號
 

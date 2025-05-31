@@ -1,0 +1,59 @@
+"kind": "pipeline"
+"name": "walrus-pr-test"
+"node":
+  "repo": "Lab3-Spotify-walrus"
+"steps":
+- "commands":
+  - "pip install -r requirements.txt || exit 1"
+  - "python manage.py test || exit 1"
+  "environment":
+    "DJANGO_SETTINGS_MODULE": "walrus.settings"
+  "image": "python:3.10.13-slim"
+  "name": "install-and-test"
+"trigger":
+  "event":
+  - "pull_request"
+"type": "kubernetes"
+---
+"kind": "pipeline"
+"name": "walrus-deploy"
+"node":
+  "repo": "Lab3-Spotify-walrus"
+"steps":
+- "commands":
+  - "pip install -r requirements.txt || exit 1"
+  - "python manage.py test || exit 1"
+  "environment":
+    "DJANGO_SETTINGS_MODULE": "walrus.settings"
+  "image": "python:3.10.13-slim"
+  "name": "install-and-test"
+- "image": "plugins/docker"
+  "name": "build and push docker image"
+  "settings":
+    "password":
+      "from_secret": "DOCKER_PASSWORD_pony"
+    "repo": "popopopony/walrus"
+    "tags":
+    - "latest"
+    - "${DRONE_COMMIT_SHA}"
+    "username":
+      "from_secret": "DOCKER_USERNAME_pony"
+- "commands":
+  - "kubectl set image -n walrus deployment/walrus walrus=popopopony/walrus:${DRONE_COMMIT_SHA} || exit 1"
+  - "kubectl rollout status -n walrus deployment/walrus || exit 1"
+  - "echo Deployment success!"
+  "image": "bitnami/kubectl:latest"
+  "name": "deploy to k8s"
+  "settings":
+    "certificate":
+      "from_secret": "K8S_CA"
+    "server":
+      "from_secret": "K8S_SERVER"
+    "token":
+      "from_secret": "K8S_TOKEN"
+"trigger":
+  "branch":
+  - "master"
+  "event":
+  - "push"
+"type": "kubernetes"
