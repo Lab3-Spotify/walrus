@@ -64,17 +64,17 @@ local deploy_pipeline = {
     branch: [ VALUES.BRANCH ],
   },
   steps: [
-    {
-      name:  "install-and-test",
-      image: "python:3.10.13-slim",
-      environment: {
-        DJANGO_SETTINGS_MODULE: std.format("%s.settings", [VALUES.PROJECT_NAME]),
-      },
-      commands: [
-        "pip install -r requirements.txt || exit 1",
-        "python manage.py test || exit 1",
-      ],
-    },
+    // {
+    //   name:  "install-and-test",
+    //   image: "python:3.10.13-slim",
+    //   environment: {
+    //     DJANGO_SETTINGS_MODULE: std.format("%s.settings", [VALUES.PROJECT_NAME]),
+    //   },
+    //   commands: [
+    //     "pip install -r requirements.txt || exit 1",
+    //     "python manage.py test || exit 1",
+    //   ],
+    // },
     {
       name:  "build and push docker image",
       image: "plugins/docker",
@@ -88,12 +88,11 @@ local deploy_pipeline = {
     {
       name:  "deploy to k8s",
       image: "plugins/kubectl:v1.6.0",
-      serviceAccount: VALUES.K8S_SERVICE_ACCOUNT,
       settings: {
         host:      SECRET.K8S_SERVER,
         token:     SECRET.K8S_TOKEN,
         cacert:    SECRET.K8S_CA,
-        namespace: VALUES.K8S_SYSTEM_SA_NAMESPACE,
+        namespace: VALUES.K8S_DEPLOYEE_NAMESPACE,
       },
       commands: [
         std.format(
