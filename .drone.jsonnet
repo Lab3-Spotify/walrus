@@ -1,3 +1,4 @@
+// output to .drone.yml (which drone really reads)
 // jsonnet .drone.jsonnet | jq . | yq -P - > .drone.yml
 
 
@@ -84,20 +85,21 @@ local deploy_pipeline = {
     },
     {
       name:  "deploy to k8s",
-      image: "bitnami/kubectl:latest",
+      image: "plugins/kubectl:v1.6.0",
       settings: {
-        server:      SECRET.K8S_SERVER,
-        token:       SECRET.K8S_TOKEN,
-        certificate: SECRET.K8S_CA,
+        host:      SECRET.K8S_SERVER,
+        token:     SECRET.K8S_TOKEN,
+        cacert:    SECRET.K8S_CA,
+        namespace: VALUES.K8S_DEPLOYEE_NAMESPACE,
       },
       commands: [
         std.format(
-          "kubectl set image -n %s deployment/%s %s=%s:${DRONE_COMMIT_SHA} || exit 1",
-          [VALUES.K8S_DEPLOYEE_NAMESPACE, VALUES.K8S_DEPLOYMENT_NAME, VALUES.CONTAINER_NAME, VALUES.DOCKERHUB_IMAGE]
+          "kubectl set image deployment/%s %s=%s:${DRONE_COMMIT_SHA} --namespace=%s || exit 1",
+          [VALUES.K8S_DEPLOYMENT_NAME, VALUES.CONTAINER_NAME, VALUES.DOCKERHUB_IMAGE, VALUES.K8S_DEPLOYEE_NAMESPACE]
         ),
         std.format(
-          "kubectl rollout status -n %s deployment/%s || exit 1",
-          [VALUES.K8S_DEPLOYEE_NAMESPACE, VALUES.K8S_DEPLOYMENT_NAME]
+          "kubectl rollout status deployment/%s --namespace=%s || exit 1",
+          [VALUES.K8S_DEPLOYMENT_NAME, VALUES.K8S_DEPLOYEE_NAMESPACE]
         ),
         "echo Deployment success!",
       ],

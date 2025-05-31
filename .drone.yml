@@ -39,16 +39,17 @@
     "username":
       "from_secret": "DOCKER_USERNAME_pony"
 - "commands":
-  - "kubectl set image -n walrus deployment/walrus walrus=popopopony/walrus:${DRONE_COMMIT_SHA} || exit 1"
-  - "kubectl rollout status -n walrus deployment/walrus || exit 1"
+  - "kubectl set image deployment/walrus walrus=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
+  - "kubectl rollout status deployment/walrus --namespace=walrus || exit 1"
   - "echo Deployment success!"
-  "image": "bitnami/kubectl:latest"
+  "image": "plugins/kubectl:v1.6.0"
   "name": "deploy to k8s"
   "settings":
-    "certificate":
+    "cacert":
       "from_secret": "K8S_CA"
-    "server":
+    "host":
       "from_secret": "K8S_SERVER"
+    "namespace": "walrus"
     "token":
       "from_secret": "K8S_TOKEN"
 "trigger":
