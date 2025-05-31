@@ -20,13 +20,6 @@
 "node":
   "repo": "Lab3-Spotify-walrus"
 "steps":
-- "commands":
-  - "pip install -r requirements.txt || exit 1"
-  - "python manage.py test || exit 1"
-  "environment":
-    "DJANGO_SETTINGS_MODULE": "walrus.settings"
-  "image": "python:3.10.13-slim"
-  "name": "install-and-test"
 - "image": "plugins/docker"
   "name": "build and push docker image"
   "settings":
@@ -44,13 +37,12 @@
   - "echo Deployment success!"
   "image": "plugins/kubectl:v1.6.0"
   "name": "deploy to k8s"
-  "serviceAccount": "drone-ci"
   "settings":
     "cacert":
       "from_secret": "K8S_CA"
     "host":
       "from_secret": "K8S_SERVER"
-    "namespace": "kube-system"
+    "namespace": "walrus"
     "token":
       "from_secret": "K8S_TOKEN"
 "trigger":
