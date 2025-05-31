@@ -8,6 +8,8 @@ local VALUES = {
   DOCKERHUB_IMAGE:     "popopopony/walrus",
   K8S_DEPLOYMENT_NAME: "walrus",
   K8S_DEPLOYEE_NAMESPACE: "walrus",
+  K8S_SYSTEM_SA_NAMESPACE: "kube-system",
+  K8S_SERVICE_ACCOUNT: "drone-ci",
   CONTAINER_NAME:      "walrus",
   BRANCH:              "master",
 };
@@ -86,11 +88,12 @@ local deploy_pipeline = {
     {
       name:  "deploy to k8s",
       image: "plugins/kubectl:v1.6.0",
+      serviceAccount: VALUES.K8S_SERVICE_ACCOUNT,
       settings: {
         host:      SECRET.K8S_SERVER,
         token:     SECRET.K8S_TOKEN,
         cacert:    SECRET.K8S_CA,
-        namespace: VALUES.K8S_DEPLOYEE_NAMESPACE,
+        namespace: VALUES.K8S_SYSTEM_SA_NAMESPACE,
       },
       commands: [
         std.format(
