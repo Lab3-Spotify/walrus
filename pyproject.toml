@@ -18,6 +18,7 @@ python-dotenv = "1.0.0"
 django-cors-headers = "4.6.0"
 ipython = "8.10"
 gunicorn = "23.0.0"
+djangorestframework-simplejwt = "5.4.0"
 
 
 [build-system]
