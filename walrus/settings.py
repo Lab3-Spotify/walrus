@@ -49,7 +49,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-START_APPS = []
+START_APPS = [
+    'walrus',
+    'account',
+    'listening_profile',
+    'playlist',
+    'provider',
+    'track',
+]
 
 INSTALLED_APPS += START_APPS
 
@@ -126,6 +133,15 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+DEFAULT_MEMBER_PASSWORD = os.environ.get('DEFAULT_MEMBER_PASSWORD', 'pass1234')
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'EXCEPTION_HANDLER': 'utils.exceptions.custom_exception_handler',
+}
 
 
 # Internationalization

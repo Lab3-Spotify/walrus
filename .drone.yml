@@ -1,18 +1,55 @@
 "kind": "pipeline"
-"name": "walrus-pr-test"
+"name": "walrus-migration-check"
 "node":
   "repo": "Lab3-Spotify-walrus"
 "steps":
 - "commands":
   - "pip install -r requirements.txt || exit 1"
-  - "python manage.py test || exit 1"
+  - "python manage.py check || exit 1"
+  - "python manage.py makemigrations --dry-run --check"
   "environment":
-    "DJANGO_SETTINGS_MODULE": "walrus.settings"
+    "DJANGO_SECRET_KEY": "MIGRATION_CHECK_PIPELINE_SUPER_SECRET"
   "image": "python:3.10.13-slim"
-  "name": "install-and-test"
+  "name": "migration-dry-run"
 "trigger":
   "event":
   - "pull_request"
+"type": "kubernetes"
+---
+"kind": "pipeline"
+"name": "walrus-test"
+"node":
+  "repo": "Lab3-Spotify-walrus"
+"services":
+- "environment":
+    "POSTGRES_DB": "walrus-test"
+    "POSTGRES_PASSWORD": "walrus-test"
+    "POSTGRES_USER": "walrus-test"
+  "image": "postgres:14-alpine"
+  "name": "walrus-test-db"
+- "image": "redis:7.4.2"
+  "name": "walrus-test-redis"
+"steps":
+- "commands":
+  - "pip install -r requirements.txt || exit 1"
+  - "python manage.py test || exit 1"
+  "environment":
+    "DJANGO_SECRET_KEY": "TEST_PIPELINE_SUPER_SECRET"
+    "ENV": "test"
+    "POSTGRES_DB": "walrus-test"
+    "POSTGRES_HOST": "walrus-test-db"
+    "POSTGRES_PASSWORD": "walrus-test"
+    "POSTGRES_PORT": "5432"
+    "POSTGRES_USER": "walrus-test"
+    "REDIS_HOST": "rwalrus-test-redis"
+    "REDIS_PORT": "6379"
+  "image": "python:3.10.13-slim"
+  "name": "install-and-test"
+"trigger":
+  "branch":
+  - "master"
+  "event":
+  - "push"
 "type": "kubernetes"
 ---
 "kind": "pipeline"
