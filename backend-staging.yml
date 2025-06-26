@@ -28,6 +28,7 @@ services:
     depends_on:
       - walrus-db
       - walrus-redis
+    restart: always
     env_file:
       - ./env/walrus-staging.env
     working_dir: /usr/src/app

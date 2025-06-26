@@ -21,6 +21,7 @@ class ResponseCode:
     INTERNAL_ERROR = 5000
 
     EXTERNAL_API_ERROR = 6000
+    EXTERNAL_API_AUTHORIZATION_ERROR = 6001
 
 
 class ResponseMessage:
@@ -36,3 +37,4 @@ class ResponseMessage:
     INTERNAL_ERROR = 'internal error'
 
     EXTERNAL_API_ERROR = 'external api error'
+    EXTERNAL_API_AUTHORIZATION_ERROR = 'external api authorization error'

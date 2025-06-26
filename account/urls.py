@@ -4,6 +4,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from account.views import LoginView
 
+app_name = 'account'
+
 member_router = routers.DefaultRouter()
 
 
