@@ -7,7 +7,7 @@ app_name = 'provider'
 
 member_router = routers.DefaultRouter()
 
-member_router.register(r'spotify-auth', SpotifyAuthViewSet, basename='spotify_auth')
+member_router.register(r'spotify-auth', SpotifyAuthViewSet, basename='spotify-auth')
 
 staff_router = routers.DefaultRouter()
 

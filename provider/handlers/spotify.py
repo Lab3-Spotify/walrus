@@ -45,9 +45,9 @@ class SpotifyAuthHandler(BaseProviderHandler):
         if settings.ENV == 'local':
             return 'http://127.0.0.1:8000/callback'
         else:
-            return request.build_absolute_uri(
-                reverse('provider:spotify_auth-authorize_callback')
-            )
+            url_path = reverse('provider:spotify-auth-authorize-callback')
+            https_url = f"https://{request.get_host()}{url_path}"
+            return https_url
 
     def _format_auth_scope(self, scope):
         return ' '.join(scope)
