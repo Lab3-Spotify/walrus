@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from utils.constants import ResponseCode
+from utils.constants import ResponseCode, ResponseMessage
 
 
 class APISuccessResponse(Response):
@@ -10,7 +10,7 @@ class APISuccessResponse(Response):
         *,
         code: int = ResponseCode.SUCCESS,
         data: dict = None,
-        msg: str = '',
+        msg: str = ResponseMessage.SUCCESS,
         status_code: int = status.HTTP_200_OK,
         headers: dict = None,
     ):
@@ -25,8 +25,9 @@ class APIFailedResponse(Response):
         *,
         code: int,
         msg: str,
+        details: dict = None,
         status_code: int = status.HTTP_400_BAD_REQUEST,
         **kwargs,
     ):
-        payload = {'code': code, 'data': {}, 'msg': msg}
+        payload = {'code': code, 'data': {}, 'msg': msg, 'details': details}
         super().__init__(data=payload, status=status_code)

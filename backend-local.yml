@@ -28,6 +28,7 @@ services:
     depends_on:
       - walrus-db
       - walrus-redis
+    restart: on-failure
     env_file:
       - ./env/walrus-local.env
     working_dir: /usr/src/app

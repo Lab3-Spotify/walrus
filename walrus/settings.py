@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,6 +26,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+ENV = os.environ.get('ENV', 'local')
 
 ALLOWED_HOSTS = ['*']
 
@@ -143,6 +145,15 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'utils.exceptions.custom_exception_handler',
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+# should add in dove env
+MEMBER_API_TOKEN_SECRET_KEY = os.getenv(
+    'MEMBER_API_TOKEN_SECRET_KEY', 'NjlsG_iWylZuptss7l5yihbmjYTkxtww98mcXmLcluQ='
+)
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
@@ -186,3 +197,8 @@ CACHES = {
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
+
+
+# Spotify
+SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
+SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')

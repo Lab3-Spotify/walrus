@@ -18,9 +18,10 @@ class LoginView(BaseAPIView):
             return APIFailedResponse(
                 code=ResponseCode.USER_NOT_FOUND,
                 msg=ResponseMessage.USER_NOT_FOUND,
+                details={
+                    'email': email,
+                },
             )
 
         jwt_tokens = get_jwt_token_for_member(member)
-        return APISuccessResponse(
-            data={'member_id': member.id, **jwt_tokens}, msg=ResponseMessage.SUCCESS
-        )
+        return APISuccessResponse(data={'member_id': member.id, **jwt_tokens})
