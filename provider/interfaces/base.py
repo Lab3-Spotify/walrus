@@ -1,3 +1,4 @@
+import base64
 import time
 from abc import ABC, abstractmethod
 from urllib.parse import urlencode
@@ -65,12 +66,13 @@ class BaseProviderAuthInterface(BaseHttpClient, ABC):
 
 
 class BaseOAuth2ProviderAuthInterface(BaseProviderAuthInterface):
+    AUTHORIZE_URL = None
+    TOKEN_URL = None
+
     def build_token_request_headers(self):
         key = self.auth_details.get('token_header', 'Authorization')
         prefix = self.auth_details.get('token_prefix', 'Basic')
         if self.auth_details.get('use_basic_auth'):
-            import base64
-
             basic = base64.b64encode(
                 f"{self.client_id}:{self.client_secret}".encode()
             ).decode()
@@ -85,9 +87,7 @@ class BaseOAuth2ProviderAuthInterface(BaseProviderAuthInterface):
     def handle_authorize_callback(self, **kwargs):
         raise NotImplementedError('Subclasses must implement handle_authorize_callback')
 
-    def exchange_token(
-        self, token_url, code, redirect_uri, extra_data=None, extra_headers=None
-    ):
+    def exchange_token(self, code, redirect_uri, extra_data=None, extra_headers=None):
         data = {
             'grant_type': 'authorization_code',
             'code': code,
@@ -100,7 +100,28 @@ class BaseOAuth2ProviderAuthInterface(BaseProviderAuthInterface):
         }
         if extra_headers:
             headers.update(extra_headers)
-        response = self.handle_request('POST', token_url, data=data, headers=headers)
+        response = self.handle_request(
+            'POST', self.TOKEN_URL, data=data, headers=headers
+        )
+        return response.json()
+
+    def refresh_access_token(self, refresh_token, extra_data=None, extra_headers=None):
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token,
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+        }
+        if extra_data:
+            data.update(extra_data)
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+        if extra_headers:
+            headers.update(extra_headers)
+        response = self.handle_request(
+            'POST', self.TOKEN_URL, data=data, headers=headers
+        )
         return response.json()
 
 
@@ -118,34 +139,24 @@ class BaseJWTProviderAuthInterface(BaseProviderAuthInterface):
         return {key: f"{prefix} {token}"}
 
 
-# class BaseProviderInterface(BaseHttpClient):
-#     """
-#     專責用戶 API 請求階段的 Bearer token header 組裝。
-#     """
-#     def __init__(self, api_details):
-#         self.api_details = api_details
+class BaseAPIProviderInterface(BaseHttpClient):
+    def __init__(self, base_url, access_token):
+        self.base_url = base_url.rstrip('/') + '/'
+        self.access_token = access_token
 
-#     def build_user_request_headers(self, access_token, extra_headers=None):
-#         if not access_token:
-#             return {}
-#         key = self.api_details.get("token_header", "Authorization")
-#         prefix = self.api_details.get("token_prefix", "Bearer")
-#         headers = {key: f"{prefix} {access_token}"}
-#         if extra_headers:
-#             headers.update(extra_headers)
-#         return headers
+    def build_request_headers(self, extra_headers=None):
+        key = 'Authorization'
+        prefix = 'Bearer'
+        headers = {key: f"{prefix} {self.access_token}"}
+        if extra_headers:
+            headers.update(extra_headers)
+        return headers
 
-#     def build_url(self, endpoint):
-#         base_url = self.api_details.get("base_url", "")
-#         return f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+    def build_url(self, endpoint):
+        return f"{self.base_url}{endpoint.lstrip('/')}"
 
-
-#     @abstractmethod
-#     def exchange_token(self, code, **kwargs):
-#         """用授權 code 換取 access_token/refresh_token"""
-#         pass
-
-#     @abstractmethod
-#     def refresh_token(self, refresh_token, **kwargs):
-#         """刷新 access_token"""
-#         pass
+    def handle_request(self, method, endpoint, **kwargs):
+        url = self.build_url(endpoint)
+        headers = self.build_request_headers(kwargs.pop('headers', None))
+        response = super().handle_request(method, url, headers=headers, **kwargs)
+        return response.json()

@@ -14,6 +14,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from provider.schedules import PROVIDER_CELERY_BEAT_SCHEDULE
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -66,6 +68,7 @@ THIRD_PARTY_APPS = [
     'django_extensions',
     'corsheaders',
     'rest_framework',
+    'django_celery_beat',
 ]
 
 INSTALLED_APPS += THIRD_PARTY_APPS
@@ -198,7 +201,25 @@ CACHES = {
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
+# RabbitMQ
+RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST', 'walrus-rabbitmq')
+RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT', '5672')
+RABBITMQ_USER = os.environ.get('RABBITMQ_DEFAULT_USER', 'walrus')
+RABBITMQ_PASSWORD = os.environ.get('RABBITMQ_DEFAULT_PASS', 'p@ss1234')
+
+
+CELERY_BROKER_URL = (
+    f'amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}:{RABBITMQ_PORT}//'
+)
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
+
+CELERY_BEAT_SCHEDULE = {
+    **PROVIDER_CELERY_BEAT_SCHEDULE,
+}
+
 
 # Spotify
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
+
+SPOTIFY_LISTENING_PROFILE_DAYS = 30

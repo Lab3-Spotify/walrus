@@ -3,10 +3,12 @@ from abc import ABC, abstractmethod
 from django.utils import timezone
 
 from provider.caches import MemberAPITokenCache
+from provider.exceptions import ProviderException
 from provider.models import MemberAPIToken
+from utils.constants import ResponseCode, ResponseMessage
 
 
-class BaseProviderHandler(ABC):
+class BaseAuthProviderHandler(ABC):
     def __init__(self, provider):
         self.provider = provider
 
@@ -72,3 +74,30 @@ class BaseProviderHandler(ABC):
             )
             expires_at = self._calculate_expires_at(expires_in)
         return expires_in, expires_at
+
+
+class BaseAPIProviderHandler(ABC):
+    def __init__(self, provider, member=None):
+        self.provider = provider
+        self.member = member
+
+    @property
+    @abstractmethod
+    def api_interface(self):
+        pass
+
+    def get_access_token(self):
+        access_token = MemberAPITokenCache.get_token(self.member.id, self.provider.code)
+        if access_token:
+            return access_token
+        access_token = self.refresh_token()
+        if not access_token:
+            raise ProviderException(
+                code=ResponseCode.EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND,
+                message=ResponseMessage.EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND,
+            )
+        return access_token
+
+    @abstractmethod
+    def refresh_token(self):
+        raise NotImplementedError('Subclasses must implement refresh_token')

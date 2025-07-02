@@ -28,6 +28,7 @@ services:
     depends_on:
       - walrus-db
       - walrus-redis
+      - walrus-rabbitmq
     restart: on-failure
     env_file:
       - ./env/walrus-local.env
@@ -42,6 +43,84 @@ services:
       bash -c "python manage.py migrate &&
               python manage.py runserver 0.0.0.0:8000"
 
+  walrus-rabbitmq:
+    image: rabbitmq:3-management
+    restart: on-failure
+    env_file:
+      - ./env/walrus-local.env
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - walrus-network
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  walrus-celery-playlog:
+    build: .
+    depends_on:
+      - walrus-db
+      - walrus-redis
+      - walrus-rabbitmq
+    restart: on-failure
+    env_file:
+      - ./env/walrus-local.env
+    working_dir: /usr/src/app
+    volumes:
+      - ./:/usr/src/app
+    networks:
+      - walrus-network
+    healthcheck:
+      test: ["CMD", "celery", "-A", "walrus", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    entrypoint: ["/usr/src/app/entrypoint-celery.sh", "playlog_q"]
+
+  # walrus-celery-token:
+  #   build: .
+  #   depends_on:
+  #     - walrus-db
+  #     - walrus-redis
+  #     - walrus-rabbitmq
+  #   restart: on-failure
+  #   env_file:
+  #     - ./env/walrus-local.env
+  #   working_dir: /usr/src/app
+  #   volumes:
+  #     - ./:/usr/src/app
+  #   networks:
+  #     - walrus-network
+  #   healthcheck:
+  #     test: ["CMD", "celery", "-A", "walrus", "status"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   entrypoint: ["/usr/src/app/entrypoint-celery.sh", "refresh_spotify_access_token_q"]
+
+  walrus-celery-beat:
+    build: .
+    restart: on-failure
+    volumes:
+      - ./:/usr/src/app
+    env_file:
+      - ./env/walrus-local.env
+    depends_on:
+      - walrus-db
+      - walrus-redis
+      - walrus-rabbitmq
+    networks:
+      - walrus-network
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "celery beat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command: celery -A walrus beat --loglevel=info
+
 networks:
   walrus-network:
     driver: bridge
@@ -49,3 +128,4 @@ networks:
 volumes:
   db_data:
   redis-data:
+  rabbitmq-data:

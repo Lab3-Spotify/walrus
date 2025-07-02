@@ -28,6 +28,7 @@ services:
     depends_on:
       - walrus-db
       - walrus-redis
+      - walrus-rabbitmq
     restart: always
     env_file:
       - ./env/walrus-staging.env
@@ -40,6 +41,66 @@ services:
       - "8000:8000"
     entrypoint: /usr/src/app/entrypoint.sh
 
+  walrus-rabbitmq:
+    image: rabbitmq:3-management
+    restart: on-failure
+    env_file:
+      - ./env/walrus-staging.env
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - walrus-network
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  walrus-celery-playlog:
+    build: .
+    depends_on:
+      - walrus-db
+      - walrus-redis
+      - walrus-rabbitmq
+    restart: on-failure
+    env_file:
+      - ./env/walrus-staging.env
+    working_dir: /usr/src/app
+    volumes:
+      - ./:/usr/src/app
+    networks:
+      - walrus-network
+    entrypoint: ["/usr/src/app/entrypoint-celery.sh", "playlog_q"]
+
+  # walrus-celery-token:
+  #   build: .
+  #   depends_on:
+  #     - walrus-db
+  #     - walrus-redis
+  #     - walrus-rabbitmq
+  #   restart: on-failure
+  #   env_file:
+  #     - ./env/walrus-staging.env
+  #   working_dir: /usr/src/app
+  #   volumes:
+  #     - ./:/usr/src/app
+  #   networks:
+  #     - walrus-network
+  #   entrypoint: ["/usr/src/app/entrypoint-celery.sh", "refresh_spotify_access_token_q"]
+
+  walrus-celery-beat:
+    build: .
+    restart: on-failure
+    volumes:
+      - ./:/usr/src/app
+    env_file:
+      - ./env/walrus-staging.env
+    depends_on:
+      - walrus-db
+      - walrus-redis
+      - walrus-rabbitmq
+    networks:
+      - walrus-network
+    command: celery -A walrus beat --loglevel=info
+
 networks:
   walrus-network:
     driver: bridge
@@ -47,3 +108,4 @@ networks:
 volumes:
   db_data:
   redis-data:
+  rabbitmq-data:

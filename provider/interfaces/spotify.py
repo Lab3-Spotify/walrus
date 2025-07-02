@@ -1,10 +1,12 @@
 from provider.exceptions import ProviderException
+from provider.interfaces.base import (
+    BaseAPIProviderInterface,
+    BaseOAuth2ProviderAuthInterface,
+)
 from utils.constants import ResponseCode, ResponseMessage
 
-from .base import BaseOAuth2ProviderAuthInterface
 
-
-class SpotifyAuthInterface(BaseOAuth2ProviderAuthInterface):
+class SpotifyAuthProviderInterface(BaseOAuth2ProviderAuthInterface):
     AUTHORIZE_URL = 'https://accounts.spotify.com/authorize'
     TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
@@ -44,25 +46,31 @@ class SpotifyAuthInterface(BaseOAuth2ProviderAuthInterface):
     def exchange_token(self, code, redirect_uri):
         headers = self.build_token_request_headers()
         return super().exchange_token(
-            token_url=self.TOKEN_URL,
             code=code,
             redirect_uri=redirect_uri,
             extra_headers=headers,
         )
 
 
-# class SpotifyInterface(BaseProviderInterface):
-#     """
-#     Spotify 專用的 API 請求介面。
-#     """
-#     def get_authorize_url(self, **kwargs):
-#         # 可選擇是否實作
-#         pass
+class SpotifyAPIProviderInterface(BaseAPIProviderInterface):
+    def __init__(self, provider, access_token):
+        super().__init__(provider.base_url, access_token)
 
-#     def exchange_token(self, code, **kwargs):
-#         # 可選擇是否實作
-#         pass
+    def get_recently_played(self, after=None, before=None, limit=50):
+        endpoint = 'me/player/recently-played'
+        params = {'limit': limit}
+        if after:
+            params['after'] = after
+        if before:
+            params['before'] = before
+        return self.handle_request('GET', endpoint, params=params)
 
-#     def refresh_token(self, refresh_token, **kwargs):
-#         # 可選擇是否實作
-#         pass
+    def get_several_artists(self, artist_ids):
+        """
+        批次取得多個 artist 詳細資料
+        :param artist_ids: List[str]
+        :return: dict (Spotify API response)
+        """
+        endpoint = 'artists'
+        params = {'ids': ','.join(artist_ids)}
+        return self.handle_request('GET', endpoint, params=params)
