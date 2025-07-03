@@ -3,8 +3,8 @@ FROM python:3.10.13-slim
 WORKDIR /usr/src/app
 
 RUN apt-get update && \
-    apt-get install vim -y \
-    unzip
+    apt-get install -y vim unzip procps && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
