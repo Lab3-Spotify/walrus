@@ -6,24 +6,24 @@ from utils.encrypt import decrypt_value, encrypt_value
 
 class Provider(models.Model):
     PROVIDER_CODE_SPOTIFY = 'spotify'
-    PROVIDER_CODE_CHOICES = [
+    PROVIDER_CODE_OPTIONS = [
         (PROVIDER_CODE_SPOTIFY, 'Spotify'),
     ]
 
     PROVIDER_CATEGORY_MUSIC = 'music'
-    PROVIDER_CATEGORY_CHOICES = [
+    PROVIDER_CATEGORY_OPTIONS = [
         (PROVIDER_CATEGORY_MUSIC, 'Music'),
     ]
 
     PROVIDER_AUTH_TYPE_OAUTH2 = 'oauth2'
     PROVIDER_AUTH_TYPE_JWT = 'jwt'
-    PROVIDER_AUTH_TYPE_CHOICES = [
+    PROVIDER_AUTH_TYPE_OPTIONS = [
         (PROVIDER_AUTH_TYPE_OAUTH2, 'OAuth2'),
         (PROVIDER_AUTH_TYPE_JWT, 'JWT'),
     ]
 
-    code = models.CharField(choices=PROVIDER_CODE_CHOICES, max_length=50, unique=True)
-    category = models.CharField(choices=PROVIDER_CATEGORY_CHOICES, max_length=100)
+    code = models.CharField(choices=PROVIDER_CODE_OPTIONS, max_length=50, unique=True)
+    category = models.CharField(choices=PROVIDER_CATEGORY_OPTIONS, max_length=100)
     auth_handler = models.CharField(
         max_length=255, unique=True, help_text='Auth Handler import path'
     )
@@ -31,7 +31,7 @@ class Provider(models.Model):
         max_length=255, unique=True, help_text='API Handler import path'
     )
     base_url = models.CharField(max_length=255, blank=True)
-    auth_type = models.CharField(max_length=20, choices=PROVIDER_AUTH_TYPE_CHOICES)
+    auth_type = models.CharField(max_length=20, choices=PROVIDER_AUTH_TYPE_OPTIONS)
     auth_details = models.JSONField(null=True, default=dict)
     extra_details = models.JSONField(null=True, default=dict)
     display_name = models.CharField(max_length=100)

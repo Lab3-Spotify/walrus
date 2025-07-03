@@ -20,6 +20,8 @@ ipython = "8.10"
 gunicorn = "23.0.0"
 djangorestframework-simplejwt = "5.4.0"
 requests = "2.31.0"
+celery = {version = "5.5.3", extras = ["redis"]}
+django-celery-beat = "2.8.1"
 
 
 [build-system]

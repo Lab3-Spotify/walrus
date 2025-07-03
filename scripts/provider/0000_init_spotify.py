@@ -26,8 +26,8 @@ class CustomScript(BaseScript):
                     'user-top-read',
                 ]
             },
-            'api_handler': 'provider.handlers.spotify.SpotifyAPIHandler',
-            'auth_handler': 'provider.handlers.spotify.SpotifyAuthHandler',
+            'api_handler': 'provider.handlers.spotify.SpotifyAPIProviderHandler',
+            'auth_handler': 'provider.handlers.spotify.SpotifyAuthProviderHandler',
             'display_name': 'Spotify',
             'description': 'Spotify 音樂串流服務 OAuth2 Provider',
             'default_token_expiration': 3600,

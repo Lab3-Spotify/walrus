@@ -22,6 +22,7 @@ class ResponseCode:
 
     EXTERNAL_API_ERROR = 6000
     EXTERNAL_API_AUTHORIZATION_ERROR = 6001
+    EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND = 6002
 
 
 class ResponseMessage:
@@ -38,3 +39,4 @@ class ResponseMessage:
 
     EXTERNAL_API_ERROR = 'external api error'
     EXTERNAL_API_AUTHORIZATION_ERROR = 'external api authorization error'
+    EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND = 'external api access_token not found'
