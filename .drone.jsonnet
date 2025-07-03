@@ -95,7 +95,7 @@ local test_pipeline = {
         POSTGRES_PASSWORD:      "walrus-test",
         POSTGRES_DB:            "walrus-test",
         POSTGRES_PORT:          "5432",
-        REDIS_HOST:             "rwalrus-test-redis",
+        REDIS_HOST:             "walrus-test-redis",
         REDIS_PORT:             "6379",
       },
       commands: [
