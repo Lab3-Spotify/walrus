@@ -70,7 +70,11 @@
       "from_secret": "DOCKER_USERNAME_pony"
 - "commands":
   - "kubectl set image deployment/walrus walrus=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
+  - "kubectl set image deployment/walrus-celery-playlog walrus-celery-playlog=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
+  - "kubectl set image deployment/walrus-celery-beat walrus-celery-beat=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
   - "kubectl rollout status deployment/walrus --namespace=walrus || exit 1"
+  - "kubectl rollout status deployment/walrus-celery-playlog --namespace=walrus || exit 1"
+  - "kubectl rollout status deployment/walrus-celery-beat --namespace=walrus || exit 1"
   - "echo Deployment success!"
   "image": "sinlead/drone-kubectl"
   "name": "deploy to k8s"

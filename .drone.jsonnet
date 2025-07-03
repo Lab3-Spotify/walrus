@@ -23,6 +23,11 @@ local SECRET = {
 };
 
 
+local CELERY_DEPLOYMENTS = [
+  "%s-celery-playlog" % VALUES.K8S_DEPLOYMENT_NAME,
+  "%s-celery-beat" % VALUES.K8S_DEPLOYMENT_NAME,
+];
+
 
 local migration_chack_pipeline = {
   kind: "pipeline",
@@ -134,17 +139,47 @@ local deploy_pipeline = {
         namespace: VALUES.K8S_DEPLOYMENT_NAMESPACE,
         startTimeout: 240
       },
+      // commands: [
+      //   std.format(
+      //     "kubectl set image deployment/%s %s=%s:${DRONE_COMMIT_SHA} --namespace=%s || exit 1",
+      //     [VALUES.K8S_DEPLOYMENT_NAME, VALUES.CONTAINER_NAME, VALUES.DOCKERHUB_IMAGE, VALUES.K8S_DEPLOYMENT_NAMESPACE]
+      //   ),
+      //   std.format(
+      //     "kubectl rollout status deployment/%s --namespace=%s || exit 1",
+      //     [VALUES.K8S_DEPLOYMENT_NAME, VALUES.K8S_DEPLOYMENT_NAMESPACE]
+      //   ),
+      //   "echo Deployment success!",
+      // ],
       commands: [
         std.format(
           "kubectl set image deployment/%s %s=%s:${DRONE_COMMIT_SHA} --namespace=%s || exit 1",
           [VALUES.K8S_DEPLOYMENT_NAME, VALUES.CONTAINER_NAME, VALUES.DOCKERHUB_IMAGE, VALUES.K8S_DEPLOYMENT_NAMESPACE]
         ),
+      ] +
+      std.map(
+        function(name)
+          std.format(
+            "kubectl set image deployment/%s %s=%s:${DRONE_COMMIT_SHA} --namespace=%s || exit 1",
+            [name, name, VALUES.DOCKERHUB_IMAGE, VALUES.K8S_DEPLOYMENT_NAMESPACE]
+          ),
+        CELERY_DEPLOYMENTS
+      ) +
+      [
         std.format(
           "kubectl rollout status deployment/%s --namespace=%s || exit 1",
           [VALUES.K8S_DEPLOYMENT_NAME, VALUES.K8S_DEPLOYMENT_NAMESPACE]
         ),
+      ] +
+      std.map(
+        function(name)
+          std.format(
+            "kubectl rollout status deployment/%s --namespace=%s || exit 1",
+            [name, VALUES.K8S_DEPLOYMENT_NAMESPACE]
+          ),
+        CELERY_DEPLOYMENTS
+      ) + [
         "echo Deployment success!",
-      ],
+      ]
     },
   ],
 };
