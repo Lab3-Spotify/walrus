@@ -60,7 +60,7 @@ class SpotifyPlayLogViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='collect')
     def collect(self, request):
         try:
-            played_logs = self.handler.collect_recently_played_logs(days=1)
+            played_logs = self.handler.collect_recently_played_logs(days=3)
             data = [
                 {
                     'track': pl.track.name,
