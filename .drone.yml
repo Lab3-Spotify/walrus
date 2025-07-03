@@ -41,7 +41,7 @@
     "POSTGRES_PASSWORD": "walrus-test"
     "POSTGRES_PORT": "5432"
     "POSTGRES_USER": "walrus-test"
-    "REDIS_HOST": "rwalrus-test-redis"
+    "REDIS_HOST": "walrus-test-redis"
     "REDIS_PORT": "6379"
   "image": "python:3.10.13-slim"
   "name": "install-and-test"
