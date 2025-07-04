@@ -1,6 +1,6 @@
 from celery.schedules import crontab
 
-PROVIDER_CELERY_BEAT_SCHEDULE = {
+CELERY_BEAT_SCHEDULE = {
     'check-and-update-missing-artist-details': {
         'task': 'provider.tasks.check_and_update_missing_artist_details',
         'schedule': crontab(hour='*/4'),

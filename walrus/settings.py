@@ -12,9 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from datetime import timedelta
-from pathlib import Path
-
-from provider.schedules import PROVIDER_CELERY_BEAT_SCHEDULE
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -212,10 +209,6 @@ CELERY_BROKER_URL = (
     f'amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}:{RABBITMQ_PORT}//'
 )
 CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
-
-CELERY_BEAT_SCHEDULE = {
-    **PROVIDER_CELERY_BEAT_SCHEDULE,
-}
 
 
 # Spotify
