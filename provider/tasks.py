@@ -102,6 +102,8 @@ def collect_member_recently_played_logs(self, provider_id, member_id):
 @shared_task(queue='playlog_q')
 def collect_all_members_recently_played_logs():
     provider = Provider.objects.get(code=Provider.PROVIDER_CODE_SPOTIFY)
-    members = Member.objects.filter(api_tokens__provider=provider)
+    members = Member.objects.filter(
+        api_tokens__provider=provider, role=Member.ROLE_MEMBER
+    )
     for member in members:
         collect_member_recently_played_logs.delay(provider.id, member.id)
