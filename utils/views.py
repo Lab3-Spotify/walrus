@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
-from utils.mixins import ResponseFormatMixin
+from utils.renderers import WalrusRenderer
 
 
-class BaseAPIView(ResponseFormatMixin, APIView):
-    pass
+class BaseAPIView(APIView):
+    renderer_classes = [WalrusRenderer]
 
 
-class BaseGenericViewSet(ResponseFormatMixin, GenericViewSet):
-    pass
+class BaseGenericViewSet(GenericViewSet):
+    renderer_classes = [WalrusRenderer]

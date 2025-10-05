@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from account.models import Member
 from provider.handlers.spotify import SpotifyAPIProviderHandler
-from provider.models import Provider
+from provider.models import Provider, ProviderProxyAccount
 from track.models import Artist
 from track.serializers import ArtistSerializer
 from track.services.model_helpers import bulk_create_genres
@@ -24,8 +24,10 @@ def update_artists_details(artist_ids, provider_id, member_id):
     artists_data = handler.api_interface.get_several_artists(artist_ids)
 
     artists_external_id_mapping = {
-        a.external_id: a
-        for a in Artist.objects.filter(external_id__in=artist_ids, provider=provider)
+        artist.external_id: artist
+        for artist in Artist.objects.filter(
+            external_id__in=artist_ids, provider=provider
+        )
     }
 
     all_genre_dicts = []
@@ -73,7 +75,7 @@ def update_artists_details(artist_ids, provider_id, member_id):
 
 @shared_task(queue='playlog_q')
 def check_and_update_missing_artist_details():
-    member_id = Member.objects.filter(role=Member.ROLE_STAFF).first().id
+    member_id = Member.objects.filter(role=Member.RoleOptions.STAFF).first().id
     for provider_id in list(Provider.objects.all().values_list('id', flat=True)):
         artists = Artist.objects.filter(provider_id=provider_id).filter(
             Q(popularity__isnull=True) | Q(followers_count__isnull=True)
@@ -101,9 +103,13 @@ def collect_member_recently_played_logs(self, provider_id, member_id):
 
 @shared_task(queue='playlog_q')
 def collect_all_members_recently_played_logs():
-    provider = Provider.objects.get(code=Provider.PROVIDER_CODE_SPOTIFY)
+    # 取得所有有指定 Spotify provider 的 member
     members = Member.objects.filter(
-        api_tokens__provider=provider, role=Member.ROLE_MEMBER
+        spotify_provider__isnull=False, role=Member.RoleOptions.MEMBER
     )
+
     for member in members:
-        collect_member_recently_played_logs.delay(provider.id, member.id)
+        if member.spotify_provider:
+            collect_member_recently_played_logs.delay(
+                member.spotify_provider.id, member.id
+            )

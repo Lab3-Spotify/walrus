@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 
 from django.utils import timezone
 
-from provider.caches import MemberAPITokenCache
+from provider.caches import MemberAPITokenCache, ProviderProxyAccountAPITokenCache
 from provider.exceptions import ProviderException
-from provider.models import MemberAPIToken
+from provider.models import MemberAPIToken, ProviderProxyAccountAPIToken
 from utils.constants import ResponseCode, ResponseMessage
 
 
@@ -19,21 +19,47 @@ class BaseAuthProviderHandler(ABC):
 
     def extract_token_fields(self, token_data):
         return {
-            'member_id': token_data.get('member_id'),
             'access_token': token_data.get('access_token'),
             'refresh_token': token_data.get('refresh_token'),
             'expires_in': token_data.get('expires_in'),
             'expires_at': token_data.get('expires_at'),
         }
 
-    def process_token(self, request, token_data):
+    def process_token(self, token_data, member_id=None, proxy_account_id=None):
+        """
+        處理 OAuth token（member 或 proxy account 通用）
+
+        Args:
+            token_data: OAuth token data from provider
+            member_id: Member ID (for member token)
+            proxy_account_id: Proxy Account ID (for proxy account token)
+
+        Returns:
+            dict: Processed token information
+        """
+        if bool(member_id) == bool(proxy_account_id):
+            raise ValueError(
+                'Either member_id or proxy_account_id must be provided, but not both'
+            )
+
         token_fields = self.extract_token_fields(token_data)
         expires_in, expires_at = self._resolve_expiration_fields(
             token_fields.get('expires_in'), token_fields.get('expires_at')
         )
 
+        if member_id:
+            return self._process_member_token(
+                token_fields, expires_in, expires_at, member_id
+            )
+        else:
+            return self._process_proxy_account_token(
+                token_fields, expires_in, expires_at, proxy_account_id
+            )
+
+    def _process_member_token(self, token_fields, expires_in, expires_at, member_id):
+        """內部方法：處理 member token"""
         api_token, _ = MemberAPIToken.objects.update_or_create(
-            member_id=token_fields.get('member_id'),
+            member_id=member_id,
             provider=self.provider,
             defaults={
                 'access_token': token_fields.get('access_token'),
@@ -42,7 +68,7 @@ class BaseAuthProviderHandler(ABC):
             },
         )
         MemberAPITokenCache.set_token(
-            member_id=token_fields.get('member_id'),
+            member_id=member_id,
             provider_code=self.provider.code,
             token=token_fields.get('access_token', ''),
             timeout=expires_in,
@@ -50,6 +76,31 @@ class BaseAuthProviderHandler(ABC):
 
         return {
             'member': api_token.member_id,
+            'provider': self.provider.code,
+            'access_token': api_token.access_token,
+        }
+
+    def _process_proxy_account_token(
+        self, token_fields, expires_in, expires_at, proxy_account_id
+    ):
+        """內部方法：處理 proxy account token"""
+        api_token, _ = ProviderProxyAccountAPIToken.objects.update_or_create(
+            proxy_account_id=proxy_account_id,
+            defaults={
+                'access_token': token_fields.get('access_token'),
+                'refresh_token': token_fields.get('refresh_token'),
+                'expires_at': expires_at,
+            },
+        )
+        ProviderProxyAccountAPITokenCache.set_token(
+            proxy_account_code=api_token.proxy_account.code,
+            provider_code=self.provider.code,
+            token=token_fields.get('access_token', ''),
+            timeout=expires_in,
+        )
+
+        return {
+            'proxy_account': api_token.proxy_account.code,
             'provider': self.provider.code,
             'access_token': api_token.access_token,
         }
@@ -77,9 +128,15 @@ class BaseAuthProviderHandler(ABC):
 
 
 class BaseAPIProviderHandler(ABC):
-    def __init__(self, provider, member=None):
+    def __init__(self, provider, member=None, proxy_account=None):
         self.provider = provider
         self.member = member
+        self.proxy_account = proxy_account
+
+        if bool(member) == bool(proxy_account):
+            raise ValueError(
+                'Either member or proxy_account must be provided, but not both'
+            )
 
     @property
     @abstractmethod
@@ -87,17 +144,43 @@ class BaseAPIProviderHandler(ABC):
         pass
 
     def get_access_token(self):
-        access_token = MemberAPITokenCache.get_token(self.member.id, self.provider.code)
+        """
+        獲取 access token，優先從 cache 獲取，如果沒有或過期則嘗試刷新
+        """
+        if self.member:
+            access_token = MemberAPITokenCache.get_token(
+                self.member.id, self.provider.code
+            )
+        else:  # proxy_account
+            access_token = ProviderProxyAccountAPITokenCache.get_token(
+                self.proxy_account.code, self.provider.code
+            )
+
         if access_token:
             return access_token
+
+        # Cache 中沒有有效 token，嘗試刷新
         access_token = self.refresh_token()
         if not access_token:
+            account_type = 'member' if self.member else 'proxy account'
             raise ProviderException(
                 code=ResponseCode.EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND,
-                message=ResponseMessage.EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND,
+                message=f"Unable to obtain access token for {account_type}",
             )
         return access_token
 
-    @abstractmethod
     def refresh_token(self):
-        raise NotImplementedError('Subclasses must implement refresh_token')
+        if self.member:
+            return self._refresh_token_member()
+        else:  # proxy_account
+            return self._refresh_token_proxy_account()
+
+    @abstractmethod
+    def _refresh_token_member(self):
+        raise NotImplementedError('Subclasses must implement _refresh_token_member')
+
+    @abstractmethod
+    def _refresh_token_proxy_account(self):
+        raise NotImplementedError(
+            'Subclasses must implement _refresh_token_proxy_account'
+        )

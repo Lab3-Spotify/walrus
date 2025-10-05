@@ -52,11 +52,11 @@ class BaseHttpClient(ABC):
 
 
 class BaseProviderAuthInterface(BaseHttpClient, ABC):
-    def __init__(self, auth_type, auth_details, client_id=None, client_secret=None):
+    def __init__(self, auth_type, auth_details):
         self.auth_type = auth_type
         self.auth_details = auth_details
-        self.client_id = client_id
-        self.client_secret = client_secret
+        self.client_id = auth_details.get('client_id')
+        self.client_secret = auth_details.get('client_secret')
 
     @abstractmethod
     def build_token_request_headers(self):

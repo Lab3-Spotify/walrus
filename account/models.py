@@ -3,27 +3,33 @@ from django.db import models
 
 
 class Member(models.Model):
-    EXPERIMENT_GROUP_LONG = 'long'
-    EXPERIMENT_GROUP_SHORT = 'short'
-    EXPERIMENT_GROUP_OPTIONS = (
-        (EXPERIMENT_GROUP_LONG, 'Long'),
-        (EXPERIMENT_GROUP_SHORT, 'Short'),
-    )
+    class ExperimentGroupOptions(models.TextChoices):
+        LONG = ('long', 'Long')
+        SHORT = ('short', 'Short')
 
-    ROLE_MEMBER = 'member'
-    ROLE_STAFF = 'staff'
-    ROLE_OPTIONS = (
-        (ROLE_MEMBER, 'Member'),
-        (ROLE_STAFF, 'Staff'),
-    )
+    class RoleOptions(models.TextChoices):
+        MEMBER = ('member', 'Member')
+        STAFF = ('staff', 'Staff')
 
     user = models.OneToOneField(User, related_name='member', on_delete=models.CASCADE)
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
     experiment_group = models.CharField(
-        max_length=50, choices=EXPERIMENT_GROUP_OPTIONS, null=True
+        max_length=50, choices=ExperimentGroupOptions.choices, null=True
     )
-    role = models.CharField(max_length=50, choices=ROLE_OPTIONS, default=ROLE_MEMBER)
+    role = models.CharField(
+        max_length=50, choices=RoleOptions.choices, default=RoleOptions.MEMBER
+    )
+
+    # Spotify一次只支援25個白名單，因此需要分配不同的spotify provider
+    spotify_provider = models.ForeignKey(
+        'provider.Provider',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='members',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -10,7 +10,7 @@ class IsMember(BasePermission):
             user
             and user.is_authenticated
             and hasattr(user, 'member')
-            and user.member.role == Member.ROLE_MEMBER
+            and user.member.role == Member.RoleOptions.MEMBER
         )
 
 
@@ -21,5 +21,5 @@ class IsStaff(BasePermission):
             user
             and user.is_authenticated
             and hasattr(user, 'member')
-            and user.member.role == Member.ROLE_STAFF
+            and user.member.role == Member.RoleOptions.STAFF
         )

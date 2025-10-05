@@ -5,10 +5,12 @@ from scripts.base import BaseScript
 class CustomScript(BaseScript):
     def run(self):
         spotify_data = {
-            'code': Provider.PROVIDER_CODE_SPOTIFY,
-            'category': Provider.PROVIDER_CATEGORY_MUSIC,
+            'name': 'familiarity-playlist1',
+            'code': 'familiarity-playlist1',
+            'platform': Provider.PlatformOptions.SPOTIFY,
+            'category': Provider.CategoryOptions.MUSIC,
             'base_url': 'https://api.spotify.com/v1/',
-            'auth_type': Provider.PROVIDER_AUTH_TYPE_OAUTH2,
+            'auth_type': Provider.AuthTypeOptions.OAUTH2,
             'auth_details': {
                 'token_header': 'Authorization',
                 'token_prefix': 'Basic',
@@ -28,7 +30,6 @@ class CustomScript(BaseScript):
             },
             'api_handler': 'provider.handlers.spotify.SpotifyAPIProviderHandler',
             'auth_handler': 'provider.handlers.spotify.SpotifyAuthProviderHandler',
-            'display_name': 'Spotify',
             'description': 'Spotify 音樂串流服務 OAuth2 Provider',
             'default_token_expiration': 3600,
         }
