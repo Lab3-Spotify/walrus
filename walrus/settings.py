@@ -30,12 +30,15 @@ ENV = os.environ.get('ENV', 'local')
 ALLOWED_HOSTS = ['*']
 
 CORS_ALLOWED_ORIGINS = (
+    'https://lab3-heron.ddns.net',
     'http://localhost',
     'http://localhost:8001',
     'http://localhost:8002',
     'http://localhost:8000',
     'http://localhost:8081',
     'http://localhost:8080',
+    'http://localhost:3000',
+    'http://localhost:3006',
 )
 
 CORS_ALLOWED_ORIGIN_REGEXES = ()
@@ -139,10 +142,8 @@ AUTH_PASSWORD_VALIDATORS = [
 DEFAULT_MEMBER_PASSWORD = os.environ.get('DEFAULT_MEMBER_PASSWORD', 'pass1234')
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'EXCEPTION_HANDLER': 'utils.exceptions.custom_exception_handler',
+    'DEFAULT_AUTHENTICATION_CLASSES': ('account.jwt.JWTAuthentication',),
+    'EXCEPTION_HANDLER': 'utils.mixins.custom_exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -170,7 +171,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -211,9 +214,6 @@ CELERY_BROKER_URL = (
 CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
-
-# Spotify
-SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
-SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
-
 SPOTIFY_LISTENING_PROFILE_DAYS = 30
+
+HERON_BASE_URL = os.environ.get('HERON_BASE_URL')
