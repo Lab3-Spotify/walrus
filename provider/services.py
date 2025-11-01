@@ -40,12 +40,17 @@ class SpotifyProxyAccountService:
             )
 
             if proxy_account:
-                return ServiceResult(
-                    success=True,
-                    data=SpotifyProxyAccountService._get_proxy_account_data_with_token(
-                        proxy_account
-                    ),
-                )
+                try:
+                    proxy_data = (
+                        SpotifyProxyAccountService._get_proxy_account_data_with_token(
+                            proxy_account
+                        )
+                    )
+                    return ServiceResult(success=True, data=proxy_data)
+                except Exception:
+                    SpotifyProxyAccountService._mark_proxy_account_inactive_and_clear_cache(
+                        proxy_account, member.id
+                    )
 
         # 2. 快取未命中，獲取分散式鎖
         if not MemberProviderProxyAccountCache.acquire_lock(platform, member.id):
@@ -86,7 +91,7 @@ class SpotifyProxyAccountService:
                 if not proxy_account:
                     return ServiceResult(
                         success=False,
-                        error_code=ResponseCode.RESOURCE_NOT_AVAILABLE,
+                        error_code=ResponseCode.PROXY_ACCOUNT_UNAVAILABLE,
                         message='目前沒有可用的 proxy account，請稍後再試',
                     )
 
@@ -99,12 +104,23 @@ class SpotifyProxyAccountService:
                 )
 
             # 6. 分配新 proxy account 時 force refresh token
-            return ServiceResult(
-                success=True,
-                data=SpotifyProxyAccountService._get_proxy_account_data_with_token(
-                    proxy_account, force_refresh_from_provider=True
-                ),
-            )
+            try:
+                proxy_data = (
+                    SpotifyProxyAccountService._get_proxy_account_data_with_token(
+                        proxy_account, force_refresh_from_provider=True
+                    )
+                )
+                return ServiceResult(success=True, data=proxy_data)
+            except Exception as refresh_error:
+                SpotifyProxyAccountService._mark_proxy_account_inactive_and_clear_cache(
+                    proxy_account, member.id
+                )
+
+                return ServiceResult(
+                    success=False,
+                    error_code=ResponseCode.EXTERNAL_API_ERROR,
+                    message=f"Proxy account token 刷新失敗: {str(refresh_error)}",
+                )
 
         except Exception as e:
             return ServiceResult(
@@ -173,6 +189,25 @@ class SpotifyProxyAccountService:
             MemberProviderProxyAccountCache.release_lock(platform, member.id)
 
     @staticmethod
+    def _mark_proxy_account_inactive_and_clear_cache(proxy_account, member_id):
+        """
+        標記 proxy account 為 inactive 並清除相關快取
+
+        Args:
+            proxy_account: ProviderProxyAccount instance
+            member_id: Member ID
+        """
+        platform = SpotifyProxyAccountService.PLATFORM
+
+        # 清除快取
+        MemberProviderProxyAccountCache.delete_cache(platform, member_id)
+
+        # 釋放並標記該 proxy account 為 inactive
+        proxy_account.current_member = None
+        proxy_account.is_active = False
+        proxy_account.save()
+
+    @staticmethod
     def _allocate_proxy_account():
         """分配策略：使用資料庫鎖避免競爭條件"""
         return (
@@ -180,7 +215,9 @@ class SpotifyProxyAccountService:
             .filter(
                 provider__platform=SpotifyProxyAccountService.PLATFORM,
                 is_active=True,
-                current_member__isnull=True,  # 沒有被任何用戶使用
+                current_member__isnull=True,
+                api_token__isnull=False,
+                api_token___refresh_token__isnull=False,
             )
             .first()
         )

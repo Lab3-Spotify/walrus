@@ -23,6 +23,7 @@ class ResponseCode:
     RESOURCE_NOT_AVAILABLE = 4007  # Resource not available
     RESOURCE_BUSY = 4008  # Resource is busy
     CONFLICT = 4009  # Data conflict or duplicate entry
+    PROXY_ACCOUNT_UNAVAILABLE = 4010  # No any available proxy accounts
     FORBIDDEN = 4030  # Access forbidden
     UNKNOWN_ERROR = 4999  # Unhandled client error
 
