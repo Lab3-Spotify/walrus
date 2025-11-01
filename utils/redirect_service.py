@@ -41,21 +41,13 @@ class RedirectService:
         return RedirectService.redirect(full_url, **params)
 
     @staticmethod
-    def spotify_callback(status=None, error=None):
+    def spotify_callback():
         """
         重定向到 Spotify 回調頁面
 
-        Args:
-            status (str, optional): 授權狀態 ('success', 'failed')
-            error (str, optional): 錯誤類型
+        不帶任何狀態參數，讓前端頁面自行呼叫 API 檢查 token 是否存在
 
         Returns:
             HttpResponseRedirect: Django 重定向響應
         """
-        if error:
-            return RedirectService.redirect_to_frontend(
-                '/spotify-callback', error=error
-            )
-        return RedirectService.redirect_to_frontend(
-            '/spotify-callback', **{'auth-status': status}
-        )
+        return RedirectService.redirect_to_frontend('/spotify-callback')

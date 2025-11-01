@@ -31,7 +31,7 @@ class SpotifyAuthViewSet(BaseGenericViewSet):
         detail=False,
         methods=['get'],
         url_path='member/authorize',
-        permission_classes=[IsMember],
+        permission_classes=[IsMember | IsStaff],
     )
     def authorize_member(self, request):
         """Member OAuth 授權"""
@@ -60,24 +60,21 @@ class SpotifyAuthViewSet(BaseGenericViewSet):
     )
     def authorize_member_callback(self, request):
         """Member OAuth callback"""
-        try:
-            state = request.GET.get('state')
-            member = Member.objects.get(id=state)
-            provider = member.spotify_provider
+        state = request.GET.get('state')
+        member = Member.objects.get(id=state)
+        provider = member.spotify_provider
 
-            if not provider:
-                raise ProviderException(
-                    code=ResponseCode.NOT_FOUND,
-                    message='No Spotify provider assigned to this member',
-                )
+        if not provider:
+            raise ProviderException(
+                code=ResponseCode.NOT_FOUND,
+                message='No Spotify provider assigned to this member',
+            )
 
-            handler = self._get_auth_handler(provider)
-            result = handler.handle_authorize_callback(request, account_type='member')
-            handler.process_token(result, member_id=member.id)
+        handler = self._get_auth_handler(provider)
+        result = handler.handle_authorize_callback(request, account_type='member')
+        handler.process_token(result, member_id=member.id)
 
-            return RedirectService.spotify_callback(status='success')
-        except ProviderException:
-            return RedirectService.spotify_callback(status='failed')
+        return RedirectService.spotify_callback()
 
     @action(
         detail=False,

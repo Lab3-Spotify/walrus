@@ -74,3 +74,67 @@ class SpotifyAPIProviderInterface(BaseAPIProviderInterface):
         endpoint = 'artists'
         params = {'ids': ','.join(artist_ids)}
         return self.handle_request('GET', endpoint, params=params)
+
+    def get_current_user_playlists(self, limit=50, offset=0):
+        """
+        取得當前用戶的所有歌單
+        :param limit: 返回的最大項目數 (default: 50, max: 50)
+        :param offset: 偏移量
+        :return: dict (Spotify API response)
+        """
+        endpoint = 'me/playlists'
+        params = {'limit': limit, 'offset': offset}
+        return self.handle_request('GET', endpoint, params=params)
+
+    def get_playlist(self, playlist_id, fields=None):
+        """
+        取得特定歌單的詳細資訊
+        :param playlist_id: Spotify playlist ID
+        :param fields: 指定要返回的欄位（可選）
+        :return: dict (Spotify API response)
+        """
+        endpoint = f'playlists/{playlist_id}'
+        params = {}
+        if fields:
+            params['fields'] = fields
+        return self.handle_request('GET', endpoint, params=params)
+
+    def get_playlist_tracks(self, playlist_id, limit=50, offset=0, market=None):
+        """
+        取得歌單中的所有曲目
+        :param playlist_id: Spotify playlist ID
+        :param limit: 返回的最大項目數 (default: 50, max: 50)
+        :param offset: 偏移量
+        :param market: ISO 3166-1 alpha-2 country code (e.g., 'TW')
+        :return: dict (Spotify API response)
+        """
+        endpoint = f'playlists/{playlist_id}/tracks'
+        params = {'limit': limit, 'offset': offset}
+        if market:
+            params['market'] = market
+        return self.handle_request('GET', endpoint, params=params)
+
+    def search(self, query, search_type='playlist', limit=1, offset=0):
+        """
+        搜尋歌單、曲目、藝人等
+        :param query: 搜尋關鍵字
+        :param search_type: 搜尋類型 (playlist, track, artist, album, show, episode)
+        :param limit: 返回的最大項目數 (default: 1, max: 50)
+        :param offset: 偏移量
+        :return: dict (Spotify API response)
+        """
+        endpoint = 'search'
+        params = {'q': query, 'type': search_type, 'limit': limit, 'offset': offset}
+        return self.handle_request('GET', endpoint, params=params)
+
+    def get_user_top_tracks(self, time_range='medium_term', limit=50, offset=0):
+        """
+        取得用戶的 Top Tracks
+        :param time_range: 時間範圍 (short_term: 4週, medium_term: 6個月, long_term: 1年左右)
+        :param limit: 返回的最大項目數 (default: 50, max: 50)
+        :param offset: 偏移量
+        :return: dict (Spotify API response)
+        """
+        endpoint = 'me/top/tracks'
+        params = {'time_range': time_range, 'limit': limit, 'offset': offset}
+        return self.handle_request('GET', endpoint, params=params)

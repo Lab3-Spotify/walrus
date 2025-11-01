@@ -45,6 +45,7 @@ class Track(models.Model):
     genres = models.ManyToManyField(Genre, related_name='tracks')
     popularity = models.IntegerField(blank=True, null=True)
     is_playable = models.BooleanField(default=True)
+    isrc = models.CharField(max_length=30, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -53,28 +54,15 @@ class Track(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def clip_start_ms(self):
+        """固定的 clip 開始時間（毫秒）"""
+        return 0
 
-class Clip(models.Model):
-    SOURCE_SPOTIFY = 'spotify'
-    SOURCE_FORCE = 'force'
-    SOURCE_AI = 'ai'
-    SOURCE_CHOICES = [
-        (SOURCE_SPOTIFY, 'Spotify'),
-        (SOURCE_FORCE, 'Force'),
-        (SOURCE_AI, 'AI'),
-    ]
-    source = models.CharField(max_length=50, choices=SOURCE_CHOICES)
-    track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='clips')
-    start_time_ms = models.FloatField()
-    end_time_ms = models.FloatField()
-    is_active = models.BooleanField(default=True)
-    extra_details = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    description = models.CharField(max_length=255, blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.track} [{self.start_time_ms}-{self.end_time_ms}] ({self.source}) {self.is_active}"
+    @property
+    def clip_end_ms(self):
+        """固定的 clip 結束時間（毫秒）"""
+        return 45000
 
 
 class TrackAudioFeatures(models.Model):

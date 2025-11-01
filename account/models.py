@@ -2,11 +2,33 @@ from django.contrib.auth.models import User
 from django.db import models
 
 
-class Member(models.Model):
-    class ExperimentGroupOptions(models.TextChoices):
-        LONG = ('long', 'Long')
-        SHORT = ('short', 'Short')
+class ExperimentGroup(models.Model):
+    class PlaylistLengthOptions(models.TextChoices):
+        SHORT_FIRST = ('short_first', 'Short First')
+        LONG_FIRST = ('long_first', 'Long First')
 
+    class FavoriteTrackPositionOptions(models.TextChoices):
+        EDGE_FIRST = ('edge_first', 'Edge First')
+        MIDDLE_FIRST = ('middle_first', 'Middle First')
+
+    code = models.CharField(max_length=20, unique=True)
+    playlist_length = models.CharField(
+        max_length=50,
+        choices=PlaylistLengthOptions.choices,
+    )
+    favorite_track_position = models.CharField(
+        max_length=50,
+        choices=FavoriteTrackPositionOptions.choices,
+    )
+
+    class Meta:
+        unique_together = [('playlist_length', 'favorite_track_position')]
+
+    def __str__(self):
+        return f"{self.code}"
+
+
+class Member(models.Model):
     class RoleOptions(models.TextChoices):
         MEMBER = ('member', 'Member')
         STAFF = ('staff', 'Staff')
@@ -14,8 +36,12 @@ class Member(models.Model):
     user = models.OneToOneField(User, related_name='member', on_delete=models.CASCADE)
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
-    experiment_group = models.CharField(
-        max_length=50, choices=ExperimentGroupOptions.choices, null=True
+    experiment_group = models.ForeignKey(
+        ExperimentGroup,
+        on_delete=models.PROTECT,
+        related_name='members',
+        null=True,
+        blank=True,
     )
     role = models.CharField(
         max_length=50, choices=RoleOptions.choices, default=RoleOptions.MEMBER
@@ -36,4 +62,4 @@ class Member(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"{self.user_id}/{self.user.email}/{self.experiment_group}"
+        return f"{self.id}/{self.user.email}"

@@ -68,6 +68,7 @@ THIRD_PARTY_APPS = [
     'django_extensions',
     'corsheaders',
     'rest_framework',
+    'django_filters',
     'django_celery_beat',
 ]
 
@@ -143,6 +144,7 @@ DEFAULT_MEMBER_PASSWORD = os.environ.get('DEFAULT_MEMBER_PASSWORD', 'pass1234')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('account.jwt.JWTAuthentication',),
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
     'EXCEPTION_HANDLER': 'utils.mixins.custom_exception_handler',
 }
 

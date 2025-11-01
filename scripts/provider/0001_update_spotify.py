@@ -9,6 +9,7 @@ class CustomScript(BaseScript):
             'streaming',
             'user-modify-playback-state',
             'user-read-playback-state',
+            'playlist-read-collaborative',
         ]
         spotify_provider.extra_details.get('auth_scope').extend(scope_to_control_player)
         spotify_provider.save()
