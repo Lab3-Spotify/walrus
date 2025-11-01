@@ -36,3 +36,6 @@ class CustomScript(BaseScript):
         Provider.objects.update_or_create(
             code=spotify_data['code'], defaults=spotify_data
         )
+
+
+w

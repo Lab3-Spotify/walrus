@@ -24,6 +24,7 @@ urlpatterns = [
     path('ivory/', admin.site.urls),
     path('api/account/', include(('account.urls', 'account'), namespace='account')),
     path('api/provider/', include(('provider.urls', 'provider'), namespace='provider')),
+    path('api/playlist/', include(('playlist.urls', 'playlist'), namespace='playlist')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

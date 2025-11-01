@@ -2,43 +2,32 @@ from django.db import models
 
 from account.models import Member
 from provider.models import Provider
-from track.models import Genre, Track
-
-# class TrackHistory(models.Model):
-#     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='track_histories')
-#     track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='track_histories')
-#     provider = models.ForeignKey(Provider, on_delete=models.PROTECT, related_name='track_histories')
-#     play_count = models.IntegerField(default=1)
-#     last_played_at = models.DateTimeField(null=True)
-
-#     class Meta:
-#         unique_together = ('member', 'track', 'provider')
-
-#     def __str__(self):
-#         return f"{self.member} - {self.track} ({self.provider})"
+from track.models import Track
 
 
-class GenreHistory(models.Model):
-    member = models.ForeignKey(
-        Member, on_delete=models.CASCADE, related_name='genre_histories'
-    )
-    genre = models.ForeignKey(
-        Genre, on_delete=models.CASCADE, related_name='genre_histories'
-    )
-    provider = models.ForeignKey(
-        Provider, on_delete=models.PROTECT, related_name='genre_histories'
-    )
-    count = models.IntegerField(default=1)
+class HistoryPlayLogContext(models.Model):
+    class TypeOptions(models.TextChoices):
+        PLAYLIST = ('playlist', 'Playlist')
+        ALBUM = ('album', 'Album')
+        ARTIST = ('artist', 'Artist')
+
+    type = models.CharField(max_length=50, choices=TypeOptions.choices)
+    external_id = models.CharField(max_length=255)
+    details = models.JSONField(null=True, default=dict)
     updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('member', 'genre', 'provider')
+        unique_together = ('type', 'external_id')
+        indexes = [
+            models.Index(fields=['type', 'external_id']),
+        ]
 
     def __str__(self):
-        return f"{self.member} - {self.genre} ({self.provider}, {self.count})"
+        return f"{self.type}: {self.external_id}"
 
 
-class TrackHistoryPlayLog(models.Model):
+class HistoryPlayLog(models.Model):
     member = models.ForeignKey(
         Member, on_delete=models.CASCADE, related_name='track_play_logs'
     )
@@ -49,6 +38,13 @@ class TrackHistoryPlayLog(models.Model):
         Provider, on_delete=models.PROTECT, related_name='track_play_logs'
     )
     played_at = models.DateTimeField()
+    context = models.ForeignKey(
+        HistoryPlayLogContext,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='play_logs',
+    )
 
     class Meta:
         unique_together = ('member', 'track', 'provider', 'played_at')

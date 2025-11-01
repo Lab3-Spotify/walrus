@@ -6,7 +6,7 @@ from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 
-from listening_profile.models import TrackHistoryPlayLog
+from listening_profile.models import HistoryPlayLog
 from provider.caches import ProviderProxyAccountAPITokenCache
 from provider.decorators import member_only, proxy_account_only
 from provider.handlers.base import BaseAPIProviderHandler, BaseAuthProviderHandler
@@ -15,7 +15,7 @@ from provider.interfaces.spotify import (
     SpotifyAuthProviderInterface,
 )
 from provider.models import MemberAPIToken, ProviderProxyAccountAPIToken
-from provider.serializers import TrackHistoryPlayLogSimpleSerializer
+from provider.serializers import HistoryPlayLogSimpleSerializer
 from track.models import Artist, Track
 from walrus import settings
 
@@ -122,24 +122,110 @@ class SpotifyAPIProviderHandler(BaseAPIProviderHandler):
 
         all_items = utils.fetch_all_recently_played_items(days)
         valid_items = utils.deduplicate_and_validate_items(all_items)
-        artists_to_create, tracks_to_create = utils.prepare_entities_for_creation(
+        artists_to_create, tracks_to_create = utils.prepare_tracks_artists_data(
             valid_items
         )
-        (
-            created_logs,
-            new_artist_external_ids,
-        ) = utils.bulk_create_and_associate_entities(
+        created_logs = utils.bulk_create_playlogs_with_relations(
             artists_to_create, tracks_to_create, valid_items
         )
 
-        if new_artist_external_ids:
-            from provider.tasks import update_artists_details
+        return created_logs
 
-            update_artists_details.delay(
-                new_artist_external_ids, self.provider.id, self.member.id
+    @member_only
+    def validate_member_playlist(self, spotify_playlist_id, playlist_type):
+        """
+        驗證用戶提供的 Spotify playlist 是否符合實驗要求
+
+        :param spotify_playlist_id: Spotify playlist ID
+        :param playlist_type: 歌單類型 (member_favorite 或 discover_weekly)
+        :return: 驗證結果字典
+        """
+        from provider.utils.spotify_utils import SpotifyPlaylistValidationUtils
+
+        validation_utils = SpotifyPlaylistValidationUtils(
+            self.api_interface, self.provider, self.member
+        )
+
+        validation_result = validation_utils.validate_playlist(
+            spotify_playlist_id, playlist_type
+        )
+
+        return validation_result
+
+    @member_only
+    def import_member_playlist(self, spotify_playlist_id, playlist_type):
+        """
+        匯入用戶提供的 Spotify playlist
+
+        會先檢查快取的 track IDs，確保與當前從 Spotify 獲取的資料一致
+        如果快取不存在或資料不一致，會拋出 ProviderException
+
+        :param spotify_playlist_id: Spotify playlist ID
+        :param playlist_type: 歌單類型 (MEMBER_FAVORITE 或 DISCOVER_WEEKLY)
+        :return: Playlist object
+        """
+        from playlist.caches import SpotifyPlaylistOrderCache
+        from provider.exceptions import ProviderException
+        from provider.utils.spotify_utils import SpotifyPlaylistImportUtils
+        from utils.constants import ResponseCode, ResponseMessage
+
+        # 1. 檢查快取是否存在
+        cached_track_ids = SpotifyPlaylistOrderCache.get_track_ids(
+            member_id=self.member.id,
+            playlist_type=playlist_type,
+        )
+
+        if cached_track_ids is None:
+            raise ProviderException(
+                code=ResponseCode.PLAYLIST_ORDER_CACHE_NOT_FOUND,
+                message=ResponseMessage.PLAYLIST_ORDER_CACHE_NOT_FOUND,
+                details={
+                    'member_id': self.member.id,
+                    'playlist_type': playlist_type,
+                },
             )
 
-        return created_logs
+        # 2. 使用 PlaylistImportUtils 收集歌單中的所有歌曲
+        playlist_utils = SpotifyPlaylistImportUtils(
+            self.api_interface, self.provider, self.member
+        )
+        tracks_data = playlist_utils.fetch_all_playlist_tracks(spotify_playlist_id)
+
+        if not tracks_data:
+            logger.warning(
+                f"No tracks found in playlist {spotify_playlist_id} for member {self.member.id}"
+            )
+            return None
+
+        # 3. 提取當前獲取的 track IDs（去除重複，使用與 validation 相同的邏輯）
+        current_track_ids = playlist_utils.get_deduped_track_ids(
+            tracks_data, playlist_type
+        )
+
+        # 4. 比對快取的 track IDs 與當前獲取的 track IDs
+        if set(cached_track_ids) != set(current_track_ids):
+            raise ProviderException(
+                code=ResponseCode.PLAYLIST_ORDER_MISMATCH,
+                message=ResponseMessage.PLAYLIST_ORDER_MISMATCH,
+                details={
+                    'cached_count': len(cached_track_ids),
+                    'current_count': len(current_track_ids),
+                    'cached_track_ids': cached_track_ids,
+                    'current_track_ids': current_track_ids,
+                },
+            )
+
+        # 5. 使用快取的順序重新排序 tracks_data
+        reordered_tracks_data = playlist_utils.reorder_tracks_by_cache(
+            tracks_data, cached_track_ids
+        )
+
+        # 6. 匯入或更新歌單
+        playlist = playlist_utils.import_or_update_playlist(
+            spotify_playlist_id, playlist_type, reordered_tracks_data
+        )
+
+        return playlist
 
     def _refresh_token_member(self):
         member_api_token = MemberAPIToken.objects.filter(

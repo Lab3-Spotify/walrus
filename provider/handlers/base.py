@@ -9,6 +9,8 @@ from utils.constants import ResponseCode, ResponseMessage
 
 
 class BaseAuthProviderHandler(ABC):
+    EXPIRE_IN_BUFFER = 60  # 1 分鐘的 buffer，確保 cache 比實際 token 更早過期
+
     def __init__(self, provider):
         self.provider = provider
 
@@ -67,11 +69,13 @@ class BaseAuthProviderHandler(ABC):
                 'expires_at': expires_at,
             },
         )
+        # 設定 cache timeout 時減去 buffer，確保 cache 比實際 token 更早過期
+        cache_timeout = max(0, expires_in - self.EXPIRE_IN_BUFFER)
         MemberAPITokenCache.set_token(
             member_id=member_id,
             provider_code=self.provider.code,
             token=token_fields.get('access_token', ''),
-            timeout=expires_in,
+            timeout=cache_timeout,
         )
 
         return {
@@ -92,11 +96,13 @@ class BaseAuthProviderHandler(ABC):
                 'expires_at': expires_at,
             },
         )
+        # 設定 cache timeout 時減去 buffer，確保 cache 比實際 token 更早過期
+        cache_timeout = max(0, expires_in - self.EXPIRE_IN_BUFFER)
         ProviderProxyAccountAPITokenCache.set_token(
             proxy_account_code=api_token.proxy_account.code,
             provider_code=self.provider.code,
             token=token_fields.get('access_token', ''),
-            timeout=expires_in,
+            timeout=cache_timeout,
         )
 
         return {

@@ -65,13 +65,9 @@ class ProviderProxyAccount(models.Model):
         return f"{self.name} - {self.provider.platform}"
 
 
-class MemberAPIToken(models.Model):
-    member = models.ForeignKey(
-        Member, on_delete=models.CASCADE, related_name='api_tokens'
-    )
-    provider = models.ForeignKey(
-        Provider, on_delete=models.CASCADE, related_name='member_tokens'
-    )
+class BaseAPIToken(models.Model):
+    """Abstract base model for API tokens with encryption"""
+
     _access_token = models.TextField(db_column='access_token')
     _refresh_token = models.TextField(null=True, blank=True, db_column='refresh_token')
     expires_at = models.DateTimeField(null=True, blank=True)
@@ -79,53 +75,44 @@ class MemberAPIToken(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        abstract = True
+
+    @property
+    def access_token(self):
+        return decrypt_value(self._access_token) if self._access_token else None
+
+    @access_token.setter
+    def access_token(self, value):
+        self._access_token = encrypt_value(value) if value else None
+
+    @property
+    def refresh_token(self):
+        return decrypt_value(self._refresh_token) if self._refresh_token else None
+
+    @refresh_token.setter
+    def refresh_token(self, value):
+        self._refresh_token = encrypt_value(value) if value else None
+
+
+class MemberAPIToken(BaseAPIToken):
+    member = models.ForeignKey(
+        Member, on_delete=models.CASCADE, related_name='api_tokens'
+    )
+    provider = models.ForeignKey(
+        Provider, on_delete=models.CASCADE, related_name='member_tokens'
+    )
+
+    class Meta:
         unique_together = ('member', 'provider')
 
     def __str__(self):
         return f"{self.member} - {self.provider.code}"
 
-    @property
-    def access_token(self):
-        return decrypt_value(self._access_token) if self._access_token else None
 
-    @access_token.setter
-    def access_token(self, value):
-        self._access_token = encrypt_value(value) if value else None
-
-    @property
-    def refresh_token(self):
-        return decrypt_value(self._refresh_token) if self._refresh_token else None
-
-    @refresh_token.setter
-    def refresh_token(self, value):
-        self._refresh_token = encrypt_value(value) if value else None
-
-
-class ProviderProxyAccountAPIToken(models.Model):
+class ProviderProxyAccountAPIToken(BaseAPIToken):
     proxy_account = models.OneToOneField(
         ProviderProxyAccount, on_delete=models.CASCADE, related_name='api_token'
     )
-    _access_token = models.TextField(db_column='access_token')
-    _refresh_token = models.TextField(null=True, blank=True, db_column='refresh_token')
-    expires_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.proxy_account} - Token"
-
-    @property
-    def access_token(self):
-        return decrypt_value(self._access_token) if self._access_token else None
-
-    @access_token.setter
-    def access_token(self, value):
-        self._access_token = encrypt_value(value) if value else None
-
-    @property
-    def refresh_token(self):
-        return decrypt_value(self._refresh_token) if self._refresh_token else None
-
-    @refresh_token.setter
-    def refresh_token(self, value):
-        self._refresh_token = encrypt_value(value) if value else None
