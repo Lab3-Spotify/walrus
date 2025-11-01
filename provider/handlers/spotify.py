@@ -96,9 +96,11 @@ class SpotifyAuthProviderHandler(BaseAuthProviderHandler):
                 return 'http://127.0.0.1:8000/callback/proxy-account/'
         else:
             if account_type == 'member':
-                url_path = reverse('provider:callback-member')
+                url_path = reverse('provider:spotify-auth-authorize-member-callback')
             else:  # proxy_account
-                url_path = reverse('provider:callback-proxy-account')
+                url_path = reverse(
+                    'provider:spotify-auth-authorize-proxy-account-callback'
+                )
             https_url = f"https://{request.get_host()}{url_path}"
             return https_url
 
