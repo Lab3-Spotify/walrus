@@ -32,15 +32,4 @@ urlpatterns = [
     path(
         'member/token/spotify/', GetSpotifyTokenView.as_view(), name='member-api-token'
     ),
-    # Callback URLs (簡潔路徑給 Spotify OAuth)
-    path(
-        'callback/member/',
-        SpotifyAuthViewSet.as_view({'get': 'authorize_member_callback'}),
-        name='callback-member',
-    ),
-    path(
-        'callback/proxy-account/',
-        SpotifyAuthViewSet.as_view({'get': 'authorize_proxy_account_callback'}),
-        name='callback-proxy-account',
-    ),
 ]

@@ -57,6 +57,7 @@ class SpotifyAuthViewSet(BaseGenericViewSet):
         methods=['get'],
         url_path='member/authorize-callback',
         permission_classes=[AllowAny],
+        name='callback-member',
     )
     def authorize_member_callback(self, request):
         """Member OAuth callback"""
@@ -107,6 +108,7 @@ class SpotifyAuthViewSet(BaseGenericViewSet):
         methods=['get'],
         url_path='proxy-account/authorize-callback',
         permission_classes=[AllowAny],
+        name='callback-proxy-account',
     )
     def authorize_proxy_account_callback(self, request):
         """Proxy Account OAuth callback"""
