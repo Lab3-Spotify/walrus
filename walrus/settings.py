@@ -43,6 +43,11 @@ CORS_ALLOWED_ORIGINS = (
 
 CORS_ALLOWED_ORIGIN_REGEXES = ()
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://lab3-walrus.ddns.net',
+    'https://lab3-heron.ddns.net',
+]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
