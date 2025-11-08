@@ -18,10 +18,12 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from utils.views import HealthCheckView
 from walrus import settings
 
 urlpatterns = [
     path('ivory/', admin.site.urls),
+    path('api/health/', HealthCheckView.as_view(), name='health-check'),
     path('api/account/', include(('account.urls', 'account'), namespace='account')),
     path('api/provider/', include(('provider.urls', 'provider'), namespace='provider')),
     path('api/playlist/', include(('playlist.urls', 'playlist'), namespace='playlist')),
