@@ -135,9 +135,12 @@ def collect_member_recently_play_logs(self, member_id):
             logger.error(f"Member {member_id} has no spotify_provider assigned")
             return
 
-        handler = SpotifyAPIProviderHandler(provider, member)
+        # 使用 Service（業務入口）
+        from provider.services import SpotifyPlayLogService
+
+        service = SpotifyPlayLogService(provider, member)
         # Spotify can only get up to 1 day of recently played logs
-        handler.collect_recently_played_logs(days=3)
+        service.collect_recently_played_logs(days=3)
         logger.info(f"Collected logs for member {member.id}")
     except Exception as e:
         logger.warning(f"Failed to collect logs for member {member_id}: {e}")

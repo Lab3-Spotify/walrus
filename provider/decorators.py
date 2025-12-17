@@ -25,7 +25,7 @@ def proxy_account_only(func):
     裝飾器：限制方法只能由 proxy accounts 使用
 
     Usage:
-        @proxy_only
+        @proxy_account_only
         def some_method(self):
             pass
     """

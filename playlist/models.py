@@ -1,9 +1,9 @@
-from operator import is_
-
 from django import db
-from django.db import models
+from django.db import models, transaction
+from django.db.models.functions import TruncMinute
 
 from account.models import Member
+from playlist.managers import PlaylistManager, PlaylistTrackManager
 from track.models import Track
 
 
@@ -60,6 +60,8 @@ class Playlist(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = PlaylistManager()
+
     class Meta:
         ordering = ['-created_at']
 
@@ -86,6 +88,8 @@ class PlaylistTrack(models.Model):
     splendid_score = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = PlaylistTrackManager()
 
     class Meta:
         ordering = ['playlist', '-created_at', 'order']
