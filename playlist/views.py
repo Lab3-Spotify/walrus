@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from django.db import transaction
 from rest_framework.decorators import action
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin, UpdateModelMixin
@@ -20,7 +22,6 @@ from playlist.services import ExperimentDataValidationService
 from provider.exceptions import ProviderException
 from utils.constants import ResponseCode, ResponseMessage
 from utils.response import APIFailedResponse, APISuccessResponse
-from utils.utils import get_class_from_path
 from utils.views import BaseGenericViewSet
 
 
@@ -43,20 +44,6 @@ class PlaylistViewSet(
             .prefetch_related('playlist_tracks__track__artists')
             .order_by('-created_at')
         )
-
-    @property
-    def handler(self):
-        member = self.request.user.member
-        provider = member.spotify_provider
-
-        if not provider:
-            raise ProviderException(
-                code=ResponseCode.NOT_FOUND,
-                message='No Spotify provider assigned to this member',
-            )
-
-        handler_path = provider.api_handler
-        return get_class_from_path(handler_path)(provider, member=member)
 
     @action(detail=False, methods=['post'], url_path='validate')
     def validate_external_playlist(self, request):
@@ -91,14 +78,27 @@ class PlaylistViewSet(
                     details=serializer.errors,
                 )
 
+            member = request.user.member
+            provider = member.spotify_provider
+
+            if not provider:
+                raise ProviderException(
+                    code=ResponseCode.NOT_FOUND,
+                    message='No Spotify provider assigned to this member',
+                )
+
             spotify_playlist_id = serializer.validated_data['spotify_playlist_id']
             playlist_type = serializer.validated_data['type']
 
-            validation_result = self.handler.validate_member_playlist(
+            from provider.services import SpotifyPlaylistService
+
+            service = SpotifyPlaylistService(provider, member)
+            validation_result = service.validate_playlist(
                 spotify_playlist_id, playlist_type
             )
 
-            return APISuccessResponse(data=validation_result)
+            # 將 dataclass 轉成 dict
+            return APISuccessResponse(data=asdict(validation_result))
 
         except ProviderException as e:
             return APIFailedResponse(code=e.code, msg=e.message, details=e.details)
@@ -129,12 +129,23 @@ class PlaylistViewSet(
                     details=serializer.errors,
                 )
 
+            member = request.user.member
+            provider = member.spotify_provider
+
+            if not provider:
+                raise ProviderException(
+                    code=ResponseCode.NOT_FOUND,
+                    message='No Spotify provider assigned to this member',
+                )
+
             spotify_playlist_id = serializer.validated_data['spotify_playlist_id']
             playlist_type = serializer.validated_data['type']
 
-            playlist = self.handler.import_member_playlist(
-                spotify_playlist_id, playlist_type
-            )
+            # 使用 Service（業務入口）
+            from provider.services import SpotifyPlaylistService
+
+            service = SpotifyPlaylistService(provider, member)
+            playlist = service.import_playlist(spotify_playlist_id, playlist_type)
 
             if not playlist:
                 return APIFailedResponse(

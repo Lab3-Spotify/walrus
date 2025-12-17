@@ -171,7 +171,7 @@ class BaseAPIProviderHandler(ABC):
             account_type = 'member' if self.member else 'proxy account'
             raise ProviderException(
                 code=ResponseCode.EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND,
-                message=f"Unable to obtain access token for {account_type}",
+                message=f"Unable to obtain access token for {self.member.email} ({account_type})",
             )
         return access_token
 

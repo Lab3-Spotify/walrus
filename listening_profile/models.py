@@ -1,6 +1,7 @@
 from django.db import models
 
 from account.models import Member
+from listening_profile.managers import HistoryPlayLogManager
 from provider.models import Provider
 from track.models import Track
 
@@ -46,8 +47,10 @@ class HistoryPlayLog(models.Model):
         related_name='play_logs',
     )
 
+    objects = HistoryPlayLogManager()
+
     class Meta:
         unique_together = ('member', 'track', 'provider', 'played_at')
 
     def __str__(self):
-        return f"{self.member} - {self.track} ({self.provider}) @ {self.played_at}"
+        return f"{self.member} - {self.track} ({self.provider.platform}) @ {self.played_at}"

@@ -1,4 +1,5 @@
 import base64
+import logging
 import time
 from abc import ABC, abstractmethod
 from urllib.parse import urlencode
@@ -8,6 +9,8 @@ import requests
 
 from provider.exceptions import ProviderException
 from utils.constants import ResponseCode, ResponseMessage
+
+logger = logging.getLogger(__name__)
 
 
 class BaseHttpClient(ABC):
@@ -39,8 +42,19 @@ class BaseHttpClient(ABC):
                     'error': 'invalid_response',
                     'details': str(response.content),
                 }
+
+            logger.error(
+                f"External API error: {exception.__class__.__name__}: {str(exception)}\n"
+                f"Status Code: {response.status_code}\n"
+                f"Response: {error_data}"
+            )
         else:
             error_data = {'error': 'connection_error', 'details': str(exception)}
+            logger.error(
+                f"Connection error: {exception.__class__.__name__}: {str(exception)}\n"
+                f"Details: {error_data}"
+            )
+
         raise ProviderException(
             code=ResponseCode.EXTERNAL_API_ERROR,
             message=ResponseMessage.EXTERNAL_API_ERROR,

@@ -1,6 +1,7 @@
 from django.db import models
 
 from provider.models import Provider
+from track.managers import ArtistManager, TrackManager
 
 
 class Genre(models.Model):
@@ -27,6 +28,9 @@ class Artist(models.Model):
     followers_count = models.IntegerField(blank=True, null=True)
     genres = models.ManyToManyField(Genre, related_name='artists')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = ArtistManager()
 
     class Meta:
         unique_together = ('external_id', 'provider')
@@ -47,6 +51,9 @@ class Track(models.Model):
     is_playable = models.BooleanField(default=True)
     isrc = models.CharField(max_length=30, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = TrackManager()
 
     class Meta:
         unique_together = ('external_id', 'provider')

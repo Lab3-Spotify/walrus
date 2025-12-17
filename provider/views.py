@@ -134,27 +134,37 @@ class SpotifyAuthViewSet(BaseGenericViewSet):
 
 
 class SpotifyPlayLogViewSet(viewsets.ViewSet):
+    """
+    Spotify 播放記錄 ViewSet
+
+    架構：View → Service → Handler → Interface
+    """
+
     permission_classes = [IsMember | IsStaff]
     PROVIDER_PLATFORM = Provider.PlatformOptions.SPOTIFY
 
-    @property
-    def handler(self):
-        member = self.request.user.member
-        provider = member.spotify_provider
-
-        if not provider:
-            raise ProviderException(
-                code=ResponseCode.NOT_FOUND,
-                message='No Spotify provider assigned to this member',
-            )
-
-        handler_path = provider.api_handler
-        return get_class_from_path(handler_path)(provider, member=member)
-
     @action(detail=False, methods=['post'], url_path='collect')
     def collect(self, request):
+        """
+        收集播放記錄
+
+        架構：View → Service → Handler → Interface
+        """
         try:
-            played_logs = self.handler.collect_recently_played_logs(days=3)
+            from provider.services import SpotifyPlayLogService
+
+            member = request.user.member
+            provider = member.spotify_provider
+
+            if not provider:
+                raise ProviderException(
+                    code=ResponseCode.NOT_FOUND,
+                    message='No Spotify provider assigned to this member',
+                )
+
+            service = SpotifyPlayLogService(provider, member)
+            played_logs = service.collect_recently_played_logs(days=3)
+
             data = [
                 {
                     'track': pl.track.name,
@@ -162,6 +172,7 @@ class SpotifyPlayLogViewSet(viewsets.ViewSet):
                 }
                 for pl in played_logs
             ]
+
             return APISuccessResponse(data=data)
         except ProviderException as e:
             return APIFailedResponse(code=e.code, msg=e.message, details=e.details)
