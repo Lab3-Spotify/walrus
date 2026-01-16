@@ -63,3 +63,20 @@ class Member(models.Model):
 
     def __str__(self):
         return f"{self.id}/{self.user.email}"
+
+    def save(self, *args, **kwargs):
+        if not self.user_id:
+            user, _ = User.objects.get_or_create(
+                username=self.email,
+                defaults={
+                    'email': self.email,
+                    'first_name': self.name,
+                },
+            )
+            self.user = user
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        user = self.user
+        super().delete(*args, **kwargs)
+        user.delete()

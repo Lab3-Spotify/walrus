@@ -56,6 +56,14 @@ class SpotifyAPIProviderInterface(BaseAPIProviderInterface):
     def __init__(self, provider, access_token):
         super().__init__(provider.base_url, access_token)
 
+    def get_me(self):
+        """
+        取得當前用戶的 Spotify 個人資料
+        :return: dict (Spotify API response)
+        """
+        endpoint = 'me'
+        return self.handle_request('GET', endpoint)
+
     def get_recently_played(self, after=None, before=None, limit=50):
         endpoint = 'me/player/recently-played'
         params = {'limit': limit}

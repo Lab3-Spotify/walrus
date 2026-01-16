@@ -165,13 +165,12 @@ class BaseAPIProviderHandler(ABC):
         if access_token:
             return access_token
 
-        # Cache 中沒有有效 token，嘗試刷新
         access_token = self.refresh_token()
         if not access_token:
             account_type = 'member' if self.member else 'proxy account'
             raise ProviderException(
                 code=ResponseCode.EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND,
-                message=f"Unable to obtain access token for {self.member.email} ({account_type})",
+                message=f"Unable to obtain access token for {self.member.email if self.member else self.proxy_account.code} ({account_type})",
             )
         return access_token
 

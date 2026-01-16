@@ -1,8 +1,5 @@
-from django.contrib.auth.models import User
-
 from account.models import ExperimentGroup, Member
 from scripts.base import BaseScript
-from walrus import settings
 
 
 class CustomScript(BaseScript):
@@ -15,7 +12,7 @@ class CustomScript(BaseScript):
             )
         }
 
-        members_d = {
+        members_data = {
             'pony@se.com': {
                 'name': 'pony_se',
                 'experiment_group': groups['SE'],
@@ -43,22 +40,13 @@ class CustomScript(BaseScript):
             },
         }
 
-        members = []
-        for email, data in members_d.items():
-            user, created = User.objects.get_or_create(
-                username=email,
-                defaults={
-                    'email': email,
-                    'first_name': data['name'],
-                    'password': settings.DEFAULT_MEMBER_PASSWORD,
-                },
-            )
-            member = Member(
-                user=user,
+        for email, data in members_data.items():
+            if Member.objects.filter(email=email).exists():
+                continue
+
+            Member.objects.create(
+                email=email,
                 name=data['name'],
                 experiment_group=data['experiment_group'],
                 role=data['role'],
-                email=email,
             )
-            members.append(member)
-        Member.objects.bulk_create(members, ignore_conflicts=True)

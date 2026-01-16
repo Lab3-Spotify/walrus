@@ -10,7 +10,7 @@ from account.permissions import IsMember, IsStaff
 from provider.exceptions import ProviderException
 from provider.handlers.spotify import SpotifyAPIProviderHandler
 from provider.models import MemberAPIToken, Provider, ProviderProxyAccount
-from provider.serializers import ProviderProxyAccountSerializer
+from provider.serializers import ProviderProxyAccountSerializer, ProviderSerializer
 from provider.services import SpotifyProxyAccountService
 from utils.constants import ResponseCode
 from utils.redirect_service import RedirectService
@@ -128,6 +128,35 @@ class SpotifyAuthViewSet(BaseGenericViewSet):
         except ProviderProxyAccount.DoesNotExist:
             return APIFailedResponse(
                 code=ResponseCode.NOT_FOUND, msg='Proxy account not found'
+            )
+        except ProviderException as e:
+            return APIFailedResponse(code=e.code, msg=e.message, details=e.details)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='member/(?P<member_id>[^/.]+)/me',
+        permission_classes=[IsStaff],
+    )
+    def get_member_spotify_profile(self, request, member_id=None):
+        """取得指定 Member 的 Spotify 個人資料，用於驗證授權是否有效（僅 Staff）"""
+        try:
+            member = Member.objects.get(id=member_id)
+            provider = member.spotify_provider
+
+            if not provider:
+                raise ProviderException(
+                    code=ResponseCode.NOT_FOUND,
+                    message='No Spotify provider assigned to this member',
+                )
+
+            handler = SpotifyAPIProviderHandler(provider, member=member)
+            profile = handler.api_interface.get_me()
+
+            return APISuccessResponse(data=profile)
+        except Member.DoesNotExist:
+            return APIFailedResponse(
+                code=ResponseCode.NOT_FOUND, msg='Member not found'
             )
         except ProviderException as e:
             return APIFailedResponse(code=e.code, msg=e.message, details=e.details)
@@ -253,3 +282,9 @@ class SpotifyProxyAccountViewSet(
             return APISuccessResponse()
         else:
             return APIFailedResponse(code=result.error_code, msg=result.message)
+
+
+class ProviderViewSet(mixins.ListModelMixin, BaseGenericViewSet):
+    permission_classes = [IsStaff]
+    queryset = Provider.objects.all()
+    serializer_class = ProviderSerializer

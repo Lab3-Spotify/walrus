@@ -3,6 +3,7 @@ from rest_framework import routers
 
 from provider.views import (
     GetSpotifyTokenView,
+    ProviderViewSet,
     SpotifyAuthViewSet,
     SpotifyPlayLogViewSet,
     SpotifyProxyAccountViewSet,
@@ -24,6 +25,7 @@ member_router.register(
 )
 
 staff_router = routers.DefaultRouter()
+staff_router.register(r'provider', ProviderViewSet, basename='provider')
 
 
 urlpatterns = [
@@ -32,4 +34,5 @@ urlpatterns = [
     path(
         'member/token/spotify/', GetSpotifyTokenView.as_view(), name='member-api-token'
     ),
+    path('staff/', include(staff_router.urls)),
 ]

@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework import routers
 
-from account.views import LoginView, LogoutView, RefreshTokenView
+from account.views import LoginView, LogoutView, MemberViewSet, RefreshTokenView
 
 app_name = 'account'
 
@@ -9,6 +9,7 @@ member_router = routers.DefaultRouter()
 
 
 staff_router = routers.DefaultRouter()
+staff_router.register(r'members', MemberViewSet, basename='member')
 
 
 urlpatterns = [
