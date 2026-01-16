@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from account.serializers import MemberSimpleSerializer
 from listening_profile.models import HistoryPlayLogContext
-from provider.models import ProviderProxyAccount
+from provider.models import Provider, ProviderProxyAccount
 from track.serializers import TrackSerializer
 
 
@@ -83,3 +83,9 @@ class ProviderProxyAccountSerializer(serializers.ModelSerializer):
 
     def get_is_available(self, obj):
         return obj.current_member is None
+
+
+class ProviderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Provider
+        fields = ['id', 'name', 'code', 'platform', 'category']

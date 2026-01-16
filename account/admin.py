@@ -67,11 +67,12 @@ class MemberAdmin(admin.ModelAdmin):
     ]
     list_filter = ['role', 'experiment_group', 'spotify_provider']
     search_fields = ['name', 'email', 'user__username']
-    raw_id_fields = ['user', 'spotify_provider']
+    raw_id_fields = ['spotify_provider']
+    readonly_fields = ['user']
     actions = [create_experiment_playlists]
 
     fieldsets = (
-        ('基本資訊', {'fields': ('user', 'email', 'name')}),
+        ('基本資訊', {'fields': ('email', 'name', 'user')}),
         ('實驗設定', {'fields': ('experiment_group', 'role')}),
         ('Spotify 設定', {'fields': ('spotify_provider',)}),
     )

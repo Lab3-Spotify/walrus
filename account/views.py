@@ -1,16 +1,20 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 
 from account.jwt import JWTService
 from account.models import Member
+from account.permissions import IsStaff
 from account.serializers import (
     LoginSerializer,
-    LogoutSerializer,
+    MemberSerializer,
+    MemberSimpleSerializer,
     RefreshTokenSerializer,
 )
+from provider.models import MemberAPIToken
 from utils.constants import ResponseCode, ResponseMessage
 from utils.response import APIFailedResponse, APISuccessResponse
-from utils.views import BaseAPIView
+from utils.views import BaseAPIView, BaseGenericViewSet
 
 
 class LoginView(BaseAPIView):
@@ -73,3 +77,30 @@ class LogoutView(BaseAPIView):
                 code=ResponseCode.INVALID_TOKEN,
                 msg='無效的 token',
             )
+
+
+class MemberViewSet(
+    ListModelMixin, CreateModelMixin, RetrieveModelMixin, BaseGenericViewSet
+):
+    permission_classes = [IsStaff]
+    serializer_class = MemberSerializer
+    queryset = Member.objects.filter(role=Member.RoleOptions.MEMBER)
+
+    @action(detail=False, methods=['get'], url_path='unauthorized')
+    def unauthorized(self, request):
+        """列出沒有通過 Spotify 驗證的 member"""
+        authorized_member_ids = (
+            MemberAPIToken.objects.exclude(_access_token__isnull=True)
+            .exclude(_access_token='')
+            .exclude(_refresh_token__isnull=True)
+            .exclude(_refresh_token='')
+            .values_list('member_id', flat=True)
+        )
+
+        unauthorized_members = self.get_queryset().exclude(
+            id__in=authorized_member_ids,
+            spotify_provider__isnull=False,
+        )
+
+        serializer = MemberSimpleSerializer(unauthorized_members, many=True)
+        return APISuccessResponse(data=serializer.data)

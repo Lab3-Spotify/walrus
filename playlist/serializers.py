@@ -183,16 +183,6 @@ class PlaylistSerializer(serializers.ModelSerializer):
         return PlaylistTrackSerializer(playlist_tracks, many=True).data
 
 
-class ExperimentDataValidationSerializer(serializers.Serializer):
-    """驗證實驗歌單評分完整性的 serializer"""
-
-    phase = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        help_text='Filter by experiment phase (1 or 2). If not provided, check all phases.',
-    )
-
-
 class PlaylistOrderCacheSerializer(serializers.Serializer):
     """快取 Spotify playlist track IDs 順序的 serializer"""
 

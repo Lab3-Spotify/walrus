@@ -145,6 +145,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# deprecated
 DEFAULT_MEMBER_PASSWORD = os.environ.get('DEFAULT_MEMBER_PASSWORD', 'pass1234')
 
 REST_FRAMEWORK = {
