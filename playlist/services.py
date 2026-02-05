@@ -96,20 +96,18 @@ class ExperimentPlaylistService:
         # 取得兩個 phase 的規格
         phase1_spec, phase2_spec = self._get_playlist_specs()
 
-        # 選擇 Phase 1 的歌曲（奇數 order）
-        phase1_favorite_tracks = self._select_tracks(
-            favorite_playlist, phase1_spec['favorite_count'], use_odd_orders=True
-        )
-        phase1_discover_tracks = self._select_tracks(
-            discover_playlist, phase1_spec['discover_count'], use_odd_orders=True
+        # 選擇 favorite 歌曲
+        phase1_favorite_tracks, phase2_favorite_tracks = self._select_tracks_for_phases(
+            favorite_playlist,
+            phase1_spec['favorite_count'],
+            phase2_spec['favorite_count'],
         )
 
-        # 選擇 Phase 2 的歌曲（偶數 order + 連續）
-        phase2_favorite_tracks = self._select_tracks(
-            favorite_playlist, phase2_spec['favorite_count'], use_odd_orders=False
-        )
-        phase2_discover_tracks = self._select_tracks(
-            discover_playlist, phase2_spec['discover_count'], use_odd_orders=False
+        # 選擇 discover 歌曲
+        phase1_discover_tracks, phase2_discover_tracks = self._select_tracks_for_phases(
+            discover_playlist,
+            phase1_spec['discover_count'],
+            phase2_spec['discover_count'],
         )
 
         # 建立兩個歌單
@@ -224,46 +222,71 @@ class ExperimentPlaylistService:
 
         return favorite_playlist, discover_playlist
 
-    def _select_tracks(self, source_playlist, required_count, use_odd_orders):
+    def _select_tracks_for_phases(
+        self, source_playlist, phase1_required, phase2_required
+    ):
         """
-        從來源 playlist 選擇歌曲
+        從來源 playlist 選擇歌曲給兩個 phase
+
+        Phase 1 優先取奇數 order (1,3,5...)
+        Phase 2 優先取偶數 order (2,4,6...)
+
+        為避免兩邊 order 範圍重疊：
+        - 需要較少的那邊，先取它的優先 order，得到「分界點」
+        - 需要較多的那邊，先取 order ≤ 分界點的另一種 order，再從分界點+1 開始連續取
 
         Args:
             source_playlist: Playlist instance
-            required_count: 需要的歌曲數量
-            use_odd_orders: True 取奇數 order (1,3,5...), False 取偶數 order (2,4,6...) + 連續
+            phase1_required: Phase 1 需要的歌曲數量
+            phase2_required: Phase 2 需要的歌曲數量
 
         Returns:
-            list: PlaylistTrack 列表
+            tuple: (phase1_tracks, phase2_tracks)
         """
-        if use_odd_orders:
-            # Phase 1: 取奇數 order
-            orders = [i for i in range(1, required_count * 2, 2)]
+        # 取得所有歌曲，按 order 排序
+        all_tracks = list(source_playlist.playlist_tracks.order_by('order'))
+        all_tracks_by_order = {t.order: t for t in all_tracks}
+
+        # 分成奇數和偶數
+        odd_tracks = [t for t in all_tracks if t.order % 2 == 1]
+        even_tracks = [t for t in all_tracks if t.order % 2 == 0]
+
+        if phase1_required <= phase2_required:
+            # Phase 1 需要較少，先讓 Phase 1 取奇數，得到分界點
+            phase1_tracks = odd_tracks[:phase1_required]
+            boundary = phase1_tracks[-1].order if phase1_tracks else 0
+
+            # Phase 2 先取 order ≤ boundary 的偶數
+            phase2_tracks = [t for t in even_tracks if t.order <= boundary]
+
+            # Phase 2 剩餘從 boundary + 1 開始連續取
+            remaining_needed = phase2_required - len(phase2_tracks)
+            if remaining_needed > 0:
+                start_order = boundary + 1
+                for order in range(start_order, max(all_tracks_by_order.keys()) + 1):
+                    if order in all_tracks_by_order:
+                        phase2_tracks.append(all_tracks_by_order[order])
+                        if len(phase2_tracks) >= phase2_required:
+                            break
         else:
-            # Phase 2: 取偶數 order
-            orders = [i for i in range(2, required_count * 2 + 1, 2)]
+            # Phase 2 需要較少，先讓 Phase 2 取偶數，得到分界點
+            phase2_tracks = even_tracks[:phase2_required]
+            boundary = phase2_tracks[-1].order if phase2_tracks else 0
 
-            # 如果偶數 order 不夠，從最大偶數 order 之後連續取
-            available_even_tracks = source_playlist.playlist_tracks.filter(
-                order__in=orders
-            ).count()
+            # Phase 1 先取 order ≤ boundary 的奇數
+            phase1_tracks = [t for t in odd_tracks if t.order <= boundary]
 
-            if available_even_tracks < required_count:
-                # 需要補充連續的歌曲
-                max_even_order = max(orders)
-                additional_needed = required_count - available_even_tracks
+            # Phase 1 剩餘從 boundary + 1 開始連續取
+            remaining_needed = phase1_required - len(phase1_tracks)
+            if remaining_needed > 0:
+                start_order = boundary + 1
+                for order in range(start_order, max(all_tracks_by_order.keys()) + 1):
+                    if order in all_tracks_by_order:
+                        phase1_tracks.append(all_tracks_by_order[order])
+                        if len(phase1_tracks) >= phase1_required:
+                            break
 
-                # 從 max_even_order + 1 開始連續取
-                additional_orders = list(
-                    range(max_even_order + 1, max_even_order + 1 + additional_needed)
-                )
-                orders = orders + additional_orders
-
-        tracks = list(
-            source_playlist.playlist_tracks.filter(order__in=orders).order_by('order')
-        )
-
-        return tracks
+        return phase1_tracks, phase2_tracks
 
     def _create_single_playlist(self, phase, spec, favorite_tracks, discover_tracks):
         """
