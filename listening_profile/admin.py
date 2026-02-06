@@ -14,7 +14,7 @@ class HistoryPlayLogContextAdmin(admin.ModelAdmin):
 @admin.register(HistoryPlayLog)
 class HistoryPlayLogAdmin(admin.ModelAdmin):
     list_display = ('member', 'track', 'provider', 'played_at', 'context')
-    list_filter = ('provider', 'played_at')
+    list_filter = ('provider', 'member', 'played_at')
     search_fields = ('member__username', 'track__name')
     readonly_fields = ('played_at',)
     date_hierarchy = 'played_at'
