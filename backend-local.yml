@@ -1,7 +1,7 @@
 services:
   walrus-db:
     image: postgres:14
-    restart: on-failure
+    restart: no
     env_file:
       - ./env/walrus-local.env
     volumes:
@@ -12,7 +12,7 @@ services:
       - "5432:5432"
 
   walrus-redis:
-    restart: on-failure
+    restart: no
     image: redis:7.4.2
     env_file:
       - ./env/walrus-local.env
@@ -29,7 +29,7 @@ services:
       - walrus-db
       - walrus-redis
       - walrus-rabbitmq
-    restart: on-failure
+    restart: no
     env_file:
       - ./env/walrus-local.env
     working_dir: /usr/src/app
@@ -46,7 +46,7 @@ services:
 
   walrus-rabbitmq:
     image: rabbitmq:3-management
-    restart: on-failure
+    restart: no
     env_file:
       - ./env/walrus-local.env
     ports:
@@ -63,7 +63,7 @@ services:
       - walrus-db
       - walrus-redis
       - walrus-rabbitmq
-    restart: on-failure
+    restart: no
     env_file:
       - ./env/walrus-local.env
     working_dir: /usr/src/app
@@ -85,7 +85,7 @@ services:
   #     - walrus-db
   #     - walrus-redis
   #     - walrus-rabbitmq
-  #   restart: on-failure
+  #   restart: no
   #   env_file:
   #     - ./env/walrus-local.env
   #   working_dir: /usr/src/app
@@ -103,7 +103,7 @@ services:
 
   walrus-celery-beat:
     build: .
-    restart: on-failure
+    restart: no
     volumes:
       - ./:/usr/src/app
     env_file:
