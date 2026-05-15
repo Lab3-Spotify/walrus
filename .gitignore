@@ -2,13 +2,15 @@
 .cursor/
 staticfiles/
 
+# Env files (use env/*.example as template)
+env/*.env
+env/*.secret
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-
-env/*.env
 
 # C extensions
 *.so
@@ -179,5 +181,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-.gitsecret/keys/random_seed
-!*.secret

@@ -47,7 +47,7 @@ class Member(models.Model):
         max_length=50, choices=RoleOptions.choices, default=RoleOptions.MEMBER
     )
 
-    # Spotify一次只支援25個白名單，因此需要分配不同的spotify provider
+    # Spotify一次只支援5個白名單，因此需要分配不同的spotify provider
     spotify_provider = models.ForeignKey(
         'provider.Provider',
         null=True,
