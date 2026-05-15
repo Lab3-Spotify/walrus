@@ -1,0 +1,38 @@
+[
+  {
+    "model": "account.experimentgroup",
+    "pk": 1,
+    "fields": {
+      "code": "SE",
+      "playlist_length": "short_first",
+      "favorite_track_position": "edge_first"
+    }
+  },
+  {
+    "model": "account.experimentgroup",
+    "pk": 2,
+    "fields": {
+      "code": "SM",
+      "playlist_length": "short_first",
+      "favorite_track_position": "middle_first"
+    }
+  },
+  {
+    "model": "account.experimentgroup",
+    "pk": 3,
+    "fields": {
+      "code": "LE",
+      "playlist_length": "long_first",
+      "favorite_track_position": "edge_first"
+    }
+  },
+  {
+    "model": "account.experimentgroup",
+    "pk": 4,
+    "fields": {
+      "code": "LM",
+      "playlist_length": "long_first",
+      "favorite_track_position": "middle_first"
+    }
+  }
+]

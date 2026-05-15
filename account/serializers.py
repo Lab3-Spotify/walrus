@@ -4,6 +4,13 @@ from account.models import ExperimentGroup, Member
 from provider.models import Provider
 
 
+class ExperimentGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExperimentGroup
+        fields = ['id', 'code', 'playlist_length', 'favorite_track_position']
+        read_only_fields = ['id']
+
+
 class MemberSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Member
@@ -20,12 +27,14 @@ class MemberSerializer(serializers.ModelSerializer):
         choices=[Member.RoleOptions.MEMBER],
         required=True,
     )
-    experiment_group = serializers.PrimaryKeyRelatedField(
+    experiment_group = serializers.SlugRelatedField(
         queryset=ExperimentGroup.objects.all(),
+        slug_field='code',
         required=True,
     )
-    spotify_provider = serializers.PrimaryKeyRelatedField(
+    spotify_provider = serializers.SlugRelatedField(
         queryset=Provider.objects.all(),
+        slug_field='code',
         required=True,
     )
 

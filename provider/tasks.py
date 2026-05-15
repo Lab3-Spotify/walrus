@@ -84,6 +84,19 @@ def update_artists_details(artist_ids, member_id):
     return [a.external_id for a in artists_to_update]
 
 
+def _get_valid_staff_member():
+    for candidate in Member.objects.filter(
+        role=Member.RoleOptions.STAFF,
+        spotify_provider__isnull=False,
+    ):
+        handler = SpotifyAPIProviderHandler(
+            candidate.spotify_provider, member=candidate
+        )
+        if handler.refresh_token():
+            return candidate
+    return None
+
+
 @shared_task(queue='playlog_q')
 def check_and_update_missing_artist_details():
     """
@@ -91,9 +104,9 @@ def check_and_update_missing_artist_details():
 
     分批處理以避免 Spotify API 限制（一次最多 50 個）
     """
-    staff_member = Member.objects.filter(role=Member.RoleOptions.STAFF).first()
+    staff_member = _get_valid_staff_member()
     if not staff_member:
-        logger.warning('No staff member found for updating artist details')
+        logger.warning('No valid staff member found for updating artist details')
         return
 
     # 查詢所有 Spotify platform 缺少詳細資訊的 artists
@@ -196,9 +209,11 @@ def check_and_update_missing_playlist_context_details():
 
     定期執行，批次處理需要更新的 contexts
     """
-    staff_member = Member.objects.filter(role=Member.RoleOptions.STAFF).first()
+    staff_member = _get_valid_staff_member()
     if not staff_member:
-        logger.warning('No staff member found for updating playlist context details')
+        logger.warning(
+            'No valid staff member found for updating playlist context details'
+        )
         return
 
     # 查詢所有 playlist 類型且缺少 details 的 contexts

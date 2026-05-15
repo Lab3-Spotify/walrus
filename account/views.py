@@ -3,9 +3,10 @@ from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveMode
 from rest_framework.permissions import IsAuthenticated
 
 from account.jwt import JWTService
-from account.models import Member
+from account.models import ExperimentGroup, Member
 from account.permissions import IsStaff
 from account.serializers import (
+    ExperimentGroupSerializer,
     LoginSerializer,
     MemberSerializer,
     MemberSimpleSerializer,
@@ -77,6 +78,12 @@ class LogoutView(BaseAPIView):
                 code=ResponseCode.INVALID_TOKEN,
                 msg='無效的 token',
             )
+
+
+class ExperimentGroupViewSet(ListModelMixin, BaseGenericViewSet):
+    permission_classes = [IsStaff]
+    serializer_class = ExperimentGroupSerializer
+    queryset = ExperimentGroup.objects.all()
 
 
 class MemberViewSet(
