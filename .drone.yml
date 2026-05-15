@@ -60,18 +60,20 @@
 - "image": "plugins/docker"
   "name": "build and push docker image"
   "settings":
+    "cache_from":
+    - "lislab3morris/walrus:latest"
     "password":
       "from_secret": "docker-password"
-    "repo": "popopopony/walrus"
+    "repo": "lislab3morris/walrus"
     "tags":
     - "latest"
     - "${DRONE_COMMIT_SHA}"
     "username":
       "from_secret": "docker-username"
 - "commands":
-  - "kubectl set image deployment/walrus walrus=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl set image deployment/walrus-celery-playlog walrus-celery-playlog=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl set image deployment/walrus-celery-beat walrus-celery-beat=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
+  - "kubectl set image deployment/walrus walrus=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
+  - "kubectl set image deployment/walrus-celery-playlog walrus-celery-playlog=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
+  - "kubectl set image deployment/walrus-celery-beat walrus-celery-beat=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
   - "kubectl rollout status deployment/walrus --namespace=walrus || exit 1"
   - "kubectl rollout status deployment/walrus-celery-playlog --namespace=walrus || exit 1"
   - "kubectl rollout status deployment/walrus-celery-beat --namespace=walrus || exit 1"
@@ -93,3 +95,33 @@
   "event":
   - "push"
 "type": "kubernetes"
+---
+"get":
+  "name": "value"
+  "path": "k8s-server"
+"kind": "secret"
+"name": "k8s-server"
+---
+"get":
+  "name": "value"
+  "path": "k8s-token"
+"kind": "secret"
+"name": "k8s-token"
+---
+"get":
+  "name": "value"
+  "path": "k8s-ca"
+"kind": "secret"
+"name": "k8s-ca"
+---
+"get":
+  "name": "value"
+  "path": "docker-username"
+"kind": "secret"
+"name": "docker-username"
+---
+"get":
+  "name": "value"
+  "path": "docker-password"
+"kind": "secret"
+"name": "docker-password"

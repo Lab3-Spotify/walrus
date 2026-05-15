@@ -4,8 +4,8 @@
 
 local VALUES = {
   PROJECT_NAME:             "walrus",
-  DOCKERHUB_USER:           "popopopony",
-  DOCKERHUB_IMAGE:          "popopopony/walrus",
+  DOCKERHUB_USER:           "lislab3morris",
+  DOCKERHUB_IMAGE:          "lislab3morris/walrus",
   K8S_DEPLOYMENT_NAME:      "walrus",
   K8S_DEPLOYMENT_NAMESPACE: "walrus",
   CONTAINER_NAME:           "walrus",
@@ -21,6 +21,12 @@ local SECRET = {
   DOCKER_USERNAME:      { from_secret: "docker-username" },
   DOCKER_PASSWORD:      { from_secret: "docker-password" },
 };
+
+local secret_k8s_server =    { kind: "secret", name: "k8s-server",      get: { path: "k8s-server",      name: "value" } };
+local secret_k8s_token =     { kind: "secret", name: "k8s-token",       get: { path: "k8s-token",       name: "value" } };
+local secret_k8s_ca =        { kind: "secret", name: "k8s-ca",          get: { path: "k8s-ca",          name: "value" } };
+local secret_docker_user =   { kind: "secret", name: "docker-username", get: { path: "docker-username", name: "value" } };
+local secret_docker_pass =   { kind: "secret", name: "docker-password", get: { path: "docker-password", name: "value" } };
 
 
 local CELERY_DEPLOYMENTS = [
@@ -127,6 +133,7 @@ local deploy_pipeline = {
         tags: ["latest", "${DRONE_COMMIT_SHA}"],
         username: SECRET.DOCKER_USERNAME,
         password: SECRET.DOCKER_PASSWORD,
+        cache_from: [VALUES.DOCKERHUB_IMAGE + ":latest"],
       },
     },
     {
@@ -184,4 +191,7 @@ local deploy_pipeline = {
   ],
 };
 
-std.manifestYamlDoc(migration_chack_pipeline) + "\n---\n" + std.manifestYamlDoc(test_pipeline) + "\n---\n" + std.manifestYamlDoc(deploy_pipeline)
+std.join("\n---\n", [
+  std.manifestYamlDoc(p)
+  for p in [migration_chack_pipeline, test_pipeline, deploy_pipeline, secret_k8s_server, secret_k8s_token, secret_k8s_ca, secret_docker_user, secret_docker_pass]
+])
