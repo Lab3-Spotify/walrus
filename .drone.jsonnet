@@ -134,6 +134,8 @@ local deploy_pipeline = {
         username: SECRET.DOCKER_USERNAME,
         password: SECRET.DOCKER_PASSWORD,
         cache_from: [VALUES.DOCKERHUB_IMAGE + ":latest"],
+        buildkit: true,
+        build_args: ["BUILDKIT_INLINE_CACHE=1"],
       },
     },
     {

@@ -2,6 +2,7 @@
 
 python manage.py migrate
 python manage.py collectstatic --noinput
+python manage.py loaddata account/fixtures/experiment_group.json
 
 python manage.py register_periodic_tasks
 

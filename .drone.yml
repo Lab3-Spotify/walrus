@@ -60,6 +60,9 @@
 - "image": "plugins/docker"
   "name": "build and push docker image"
   "settings":
+    "build_args":
+    - "BUILDKIT_INLINE_CACHE=1"
+    "buildkit": true
     "cache_from":
     - "lislab3morris/walrus:latest"
     "password":
