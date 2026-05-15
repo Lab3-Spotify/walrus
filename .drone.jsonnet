@@ -15,11 +15,11 @@ local VALUES = {
 
 
 local SECRET = {
-  K8S_SERVER:           { from_secret: "K8S_SERVER" },
-  K8S_TOKEN:            { from_secret: "K8S_TOKEN" },
-  K8S_CA:               { from_secret: "K8S_CA" },
-  DOCKER_USERNAME:      { from_secret: "DOCKER_USERNAME_pony" },
-  DOCKER_PASSWORD:      { from_secret: "DOCKER_PASSWORD_pony" },
+  K8S_SERVER:           { from_secret: "k8s-server" },
+  K8S_TOKEN:            { from_secret: "k8s-token" },
+  K8S_CA:               { from_secret: "k8s-ca" },
+  DOCKER_USERNAME:      { from_secret: "docker-username" },
+  DOCKER_PASSWORD:      { from_secret: "docker-password" },
 };
 
 

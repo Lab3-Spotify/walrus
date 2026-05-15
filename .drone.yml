@@ -61,13 +61,13 @@
   "name": "build and push docker image"
   "settings":
     "password":
-      "from_secret": "DOCKER_PASSWORD_pony"
+      "from_secret": "docker-password"
     "repo": "popopopony/walrus"
     "tags":
     - "latest"
     - "${DRONE_COMMIT_SHA}"
     "username":
-      "from_secret": "DOCKER_USERNAME_pony"
+      "from_secret": "docker-username"
 - "commands":
   - "kubectl set image deployment/walrus walrus=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
   - "kubectl set image deployment/walrus-celery-playlog walrus-celery-playlog=popopopony/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
@@ -80,11 +80,11 @@
   "name": "deploy to k8s"
   "settings":
     "kubernetes_cert":
-      "from_secret": "K8S_CA"
+      "from_secret": "k8s-ca"
     "kubernetes_server":
-      "from_secret": "K8S_SERVER"
+      "from_secret": "k8s-server"
     "kubernetes_token":
-      "from_secret": "K8S_TOKEN"
+      "from_secret": "k8s-token"
     "namespace": "walrus"
     "startTimeout": 240
 "trigger":

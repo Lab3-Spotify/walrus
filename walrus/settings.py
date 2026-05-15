@@ -30,7 +30,7 @@ ENV = os.environ.get('ENV', 'local')
 ALLOWED_HOSTS = ['*']
 
 CORS_ALLOWED_ORIGINS = (
-    'https://lab3-heron.ddns.net',
+    'https://heron.lab3.website',
     'http://localhost',
     'http://localhost:8001',
     'http://localhost:8002',
@@ -44,8 +44,8 @@ CORS_ALLOWED_ORIGINS = (
 CORS_ALLOWED_ORIGIN_REGEXES = ()
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://lab3-walrus.ddns.net',
-    'https://lab3-heron.ddns.net',
+    'https://walrus.lab3.website',
+    'https://heron.lab3.website',
 ]
 
 # Application definition
