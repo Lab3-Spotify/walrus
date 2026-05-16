@@ -94,6 +94,18 @@ class SpotifyAPIProviderInterface(BaseAPIProviderInterface):
         params = {'limit': limit, 'offset': offset}
         return self.handle_request('GET', endpoint, params=params)
 
+    def get_user_playlists(self, limit=1, offset=0):
+        """
+        取得當前授權用戶的歌單列表。
+        用於驗證 access token 是否具備 playlist-read-private scope 的實際存取權，
+        比 /me 更可靠（Spotify 對 /me 的授權驗證較寬鬆，撤銷授權後仍可能回 200）。
+        需要 scope：playlist-read-private
+        :return: dict (Spotify API response)
+        """
+        return self.handle_request(
+            'GET', 'me/playlists', params={'limit': limit, 'offset': offset}
+        )
+
     def get_playlist(self, playlist_id, fields=None):
         """
         取得特定歌單的詳細資訊
