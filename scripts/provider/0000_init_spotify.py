@@ -24,7 +24,6 @@ class CustomScript(BaseScript):
                     'user-read-recently-played',
                     'playlist-read-private',
                     'user-follow-read',
-                    'playlist-read-private',
                     'user-top-read',
                 ]
             },
@@ -36,6 +35,3 @@ class CustomScript(BaseScript):
         Provider.objects.update_or_create(
             code=spotify_data['code'], defaults=spotify_data
         )
-
-
-w

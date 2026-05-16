@@ -33,6 +33,14 @@ urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Spotify OAuth2 requires that, when using http (local development), the redirect_uri
 # must be as simple as possible, e.g., http://127.0.0.1:8000/callback/member/ (no subpaths allowed).
+if settings.ENV != 'production':
+    from django.http import JsonResponse
+
+    def trigger_error(request):
+        raise Exception('GlitchTip test error')
+
+    urlpatterns += [path('api/glitchtip-debug/', trigger_error)]
+
 if settings.ENV == 'local':
     from django.http import Http404
     from rest_framework.permissions import AllowAny

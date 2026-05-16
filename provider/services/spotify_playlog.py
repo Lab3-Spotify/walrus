@@ -130,50 +130,34 @@ class SpotifyPlayLogService:
         """
         從 Spotify API 獲取所有播放記錄（處理分頁）
 
+        Spotify recently-played 回傳順序為新 → 舊。
+        第一頁用 after=起始時間 取得範圍內資料，
+        後續頁用 cursors.before 往更舊的方向翻頁。
+
         :param days: 獲取最近幾天的數據
         :return: Spotify API 返回的 items 列表
         """
         now = timezone.now()
-        after = int((now - timezone.timedelta(days=days)).timestamp() * 1000)
+        start_ts = int((now - timezone.timedelta(days=days)).timestamp() * 1000)
 
         all_items = []
-        next_after = after
 
-        while True:
-            data = self.handler.fetch_recently_played_raw(after=next_after, limit=50)
-            items = data.get('items', [])
+        data = self.handler.fetch_recently_played_raw(after=start_ts, limit=50)
+        items = data.get('items', [])
 
-            if not items:
-                break
-
+        while items:
             all_items.extend(items)
 
-            # 獲取最後一條記錄的時間戳
-            last_played = items[-1]['played_at']
-
-            # 解析時間戳
-            try:
-                from django.utils.dateparse import parse_datetime
-
-                last_played_dt = parse_datetime(last_played)
-                if not last_played_dt:
-                    logger.warning(f"Failed to parse played_at: {last_played}")
-                    break
-
-                last_played_ts = int(last_played_dt.timestamp() * 1000)
-
-                # 如果時間戳沒有前進，停止（防止無限循環）
-                if last_played_ts <= next_after:
-                    break
-
-                next_after = last_played_ts
-
-            except (ValueError, KeyError) as e:
-                logger.warning(f"Failed to parse played_at: {e}")
-                break
-
-            # 如果返回的數量少於請求的，說明沒有更多了
             if len(items) < 50:
                 break
+
+            before_cursor = data.get('cursors', {}).get('before')
+            if not before_cursor or int(before_cursor) <= start_ts:
+                break
+
+            data = self.handler.fetch_recently_played_raw(
+                before=int(before_cursor), limit=50
+            )
+            items = data.get('items', [])
 
         return all_items

@@ -31,7 +31,6 @@ class CustomScript(BaseScript):
                         'user-read-recently-played',
                         'playlist-read-private',
                         'user-follow-read',
-                        'playlist-read-private',
                         'user-top-read',
                         'streaming',
                         'user-modify-playback-state',

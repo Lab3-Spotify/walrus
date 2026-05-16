@@ -42,12 +42,8 @@ class RedirectService:
 
     @staticmethod
     def spotify_callback():
-        """
-        重定向到 Spotify 回調頁面
-
-        不帶任何狀態參數，讓前端頁面自行呼叫 API 檢查 token 是否存在
-
-        Returns:
-            HttpResponseRedirect: Django 重定向響應
-        """
         return RedirectService.redirect_to_frontend('/spotify-callback')
+
+    @staticmethod
+    def spotify_callback_error(error: str):
+        return RedirectService.redirect_to_frontend('/spotify-callback', error=error)

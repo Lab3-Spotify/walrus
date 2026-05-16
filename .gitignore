@@ -1,4 +1,5 @@
 .DS_Store
+requirements.txt
 .cursor/
 staticfiles/
 

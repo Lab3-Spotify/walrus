@@ -1,1 +1,42 @@
+# Secrets & env
 .env
+env/*.env
+env/*.secret
+
+# Git
+.git
+.gitignore
+.github
+
+# IDE & OS
+.DS_Store
+.cursor
+.claude
+.vscode
+.idea
+
+# Python
+__pycache__
+*.py[cod]
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+
+# Dev tools
+.pre-commit-config.yaml
+poetry.lock
+
+# Docs & local config
+README.md
+docs/
+docker-compose.local.yml
+backend-staging.yml
+
+# Static files (collected at runtime)
+staticfiles/
+
+# Scripts
+scripts/
+debug_scripts/
