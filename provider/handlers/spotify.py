@@ -161,11 +161,11 @@ class SpotifyAPIProviderHandler(BaseAPIProviderHandler):
         )
 
         tracks = [
-            item['track']
+            item['item']
             for item in items
-            if item.get('track')
-            and item['track'].get('type') == 'track'
-            and item['track'].get('is_playable', False)  # 只取可播放的歌曲
+            if item.get('item')
+            and item['item'].get('type') == 'track'
+            and item['item'].get('is_playable', False)  # 只取可播放的歌曲
         ]
 
         return tracks
