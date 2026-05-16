@@ -1,9 +1,9 @@
 services:
   walrus-db:
     image: postgres:14
-    restart: always
+    restart: no
     env_file:
-      - ./env/walrus-staging.env
+      - ./env/walrus-local.env
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -12,10 +12,10 @@ services:
       - "5432:5432"
 
   walrus-redis:
-    restart: always
+    restart: no
     image: redis:7.4.2
     env_file:
-      - ./env/walrus-staging.env
+      - ./env/walrus-local.env
     volumes:
       - redis-data:/data
     networks:
@@ -29,9 +29,9 @@ services:
       - walrus-db
       - walrus-redis
       - walrus-rabbitmq
-    restart: always
+    restart: no
     env_file:
-      - ./env/walrus-staging.env
+      - ./env/walrus-local.env
     working_dir: /usr/src/app
     volumes:
       - ./:/usr/src/app
@@ -39,13 +39,16 @@ services:
       - walrus-network
     ports:
       - "8000:8000"
-    entrypoint: /usr/src/app/entrypoint.sh
+    command: >
+      bash -c "python manage.py migrate &&
+              python manage.py register_periodic_tasks &&
+              python manage.py runserver 0.0.0.0:8000"
 
   walrus-rabbitmq:
     image: rabbitmq:3-management
-    restart: on-failure
+    restart: no
     env_file:
-      - ./env/walrus-staging.env
+      - ./env/walrus-local.env
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -60,15 +63,21 @@ services:
       - walrus-db
       - walrus-redis
       - walrus-rabbitmq
-    restart: on-failure
+    restart: no
     env_file:
-      - ./env/walrus-staging.env
+      - ./env/walrus-local.env
     working_dir: /usr/src/app
     volumes:
       - ./:/usr/src/app
     networks:
       - walrus-network
-    entrypoint: ["/usr/src/app/entrypoint-celery.sh", "playlog_q"]
+    healthcheck:
+      test: ["CMD", "celery", "-A", "walrus", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    entrypoint: ["/usr/src/app/entrypoints/celery.sh", "playlog_q"]
 
   # walrus-celery-token:
   #   build: .
@@ -76,29 +85,41 @@ services:
   #     - walrus-db
   #     - walrus-redis
   #     - walrus-rabbitmq
-  #   restart: on-failure
+  #   restart: no
   #   env_file:
-  #     - ./env/walrus-staging.env
+  #     - ./env/walrus-local.env
   #   working_dir: /usr/src/app
   #   volumes:
   #     - ./:/usr/src/app
   #   networks:
   #     - walrus-network
-  #   entrypoint: ["/usr/src/app/entrypoint-celery.sh", "refresh_spotify_access_token_q"]
+  #   healthcheck:
+  #     test: ["CMD", "celery", "-A", "walrus", "status"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   entrypoint: ["/usr/src/app/entrypoints/celery.sh", "refresh_spotify_access_token_q"]
 
   walrus-celery-beat:
     build: .
-    restart: on-failure
+    restart: no
     volumes:
       - ./:/usr/src/app
     env_file:
-      - ./env/walrus-staging.env
+      - ./env/walrus-local.env
     depends_on:
       - walrus-db
       - walrus-redis
       - walrus-rabbitmq
     networks:
       - walrus-network
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "celery beat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     command: celery -A walrus beat --loglevel=info
 
 networks:

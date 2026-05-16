@@ -6,7 +6,12 @@ from django.urls import reverse
 
 from provider.caches import ProviderProxyAccountAPITokenCache
 from provider.decorators import member_only, proxy_account_only
-from provider.handlers.base import BaseAPIProviderHandler, BaseAuthProviderHandler
+from provider.exceptions import ProviderException
+from provider.handlers.base import (
+    TOKEN_INVALID_STATUS_CODES,
+    BaseAPIProviderHandler,
+    BaseAuthProviderHandler,
+)
 from provider.interfaces.spotify import (
     SpotifyAPIProviderInterface,
     SpotifyAuthProviderInterface,
@@ -161,6 +166,18 @@ class SpotifyAPIProviderHandler(BaseAPIProviderHandler):
         ]
 
         return tracks
+
+    def _is_token_valid(self, access_token: str) -> bool:
+        try:
+            SpotifyAPIProviderInterface(
+                provider=self.provider,
+                access_token=access_token,
+            ).get_me()
+            return True
+        except ProviderException as e:
+            if e.status_code in TOKEN_INVALID_STATUS_CODES:
+                return False
+            raise
 
     # ===== Token 刷新方法 =====
 

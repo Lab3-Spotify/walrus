@@ -61,21 +61,26 @@ class SpotifyAuthViewSet(BaseGenericViewSet):
     )
     def authorize_member_callback(self, request):
         """Member OAuth callback"""
-        state = request.GET.get('state')
-        member = Member.objects.get(id=state)
-        provider = member.spotify_provider
+        try:
+            state = request.GET.get('state')
+            member = Member.objects.get(id=state)
+            provider = member.spotify_provider
 
-        if not provider:
-            raise ProviderException(
-                code=ResponseCode.NOT_FOUND,
-                message='No Spotify provider assigned to this member',
-            )
+            if not provider:
+                raise ProviderException(
+                    code=ResponseCode.NOT_FOUND,
+                    message='No Spotify provider assigned to this member',
+                )
 
-        handler = self._get_auth_handler(provider)
-        result = handler.handle_authorize_callback(request, account_type='member')
-        handler.process_token(result, member_id=member.id)
+            handler = self._get_auth_handler(provider)
+            result = handler.handle_authorize_callback(request, account_type='member')
+            handler.process_token(result, member_id=member.id)
 
-        return RedirectService.spotify_callback()
+            return RedirectService.spotify_callback()
+        except Member.DoesNotExist:
+            return RedirectService.spotify_callback_error('invalid_state')
+        except ProviderException as e:
+            return RedirectService.spotify_callback_error(e.message)
 
     @action(
         detail=False,
@@ -242,12 +247,8 @@ class GetSpotifyTokenView(BaseAPIView):
             )
 
         try:
-            access_token = handler.get_access_token()
-            data = {
-                'access_token': access_token,
-            }
-
-            return APISuccessResponse(data=data)
+            access_token = handler.get_verified_access_token()
+            return APISuccessResponse(data={'access_token': access_token})
         except ProviderException as e:
             return APIFailedResponse(code=e.code, msg=e.message, details=e.details)
 

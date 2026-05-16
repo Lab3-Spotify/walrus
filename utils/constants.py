@@ -32,6 +32,7 @@ class ResponseCode:
     EXTERNAL_API_ERROR = 6000  # Third-party API error
     EXTERNAL_API_AUTHORIZATION_ERROR = 6001  # Third-party API auth error
     EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND = 6002  # Third-party API token missing
+    EXTERNAL_API_REAUTH_REQUIRED = 6003  # Third-party API re-authorization required
 
     EXPERIMENT_DATA_NOT_COMPLETED = 7000
     PLAYLIST_ORDER_CACHE_NOT_FOUND = 7001  # Playlist order cache not found
@@ -66,6 +67,7 @@ class ResponseMessage:
     EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND = (
         'external api access_token not found'  # Third-party API token missing
     )
+    EXTERNAL_API_REAUTH_REQUIRED = 'spotify re-authorization required'
 
     EXPERIMENT_DATA_NOT_COMPLETED = 'experiment data not completed'
     PLAYLIST_ORDER_CACHE_NOT_FOUND = 'playlist order cache not found'

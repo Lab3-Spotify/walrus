@@ -1,3 +1,4 @@
+import sentry_sdk
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.db.models import Q
@@ -6,17 +7,17 @@ from account.models import Member
 from listening_profile.models import HistoryPlayLogContext
 from provider.exceptions import ProviderException
 from provider.handlers.spotify import SpotifyAPIProviderHandler
-from provider.models import Provider, ProviderProxyAccount
+from provider.models import Provider
 from track.models import Artist
 from track.serializers import ArtistSerializer
 from track.services.model_helpers import bulk_create_genres
-from walrus import settings
+from utils.constants import ResponseCode
 
 logger = get_task_logger(__name__)
 
 
-@shared_task(queue='playlog_q')
-def update_artists_details(artist_ids, member_id):
+@shared_task(bind=True, max_retries=3, default_retry_delay=60, queue='playlog_q')
+def update_artists_details(self, artist_ids, member_id):
     if not artist_ids:
         return []
 
@@ -27,8 +28,20 @@ def update_artists_details(artist_ids, member_id):
         logger.error(f"Member {member_id} has no spotify_provider assigned")
         return []
 
-    handler = SpotifyAPIProviderHandler(provider, member=member)
-    artists_data = handler.api_interface.get_several_artists(artist_ids)
+    try:
+        handler = SpotifyAPIProviderHandler(provider, member=member)
+        artists_data = handler.api_interface.get_several_artists(artist_ids)
+    except ProviderException as e:
+        if e.code == ResponseCode.EXTERNAL_API_REAUTH_REQUIRED or e.status_code in {
+            401,
+            403,
+        }:
+            sentry_sdk.capture_exception(e, extras={'member_id': member_id})
+            logger.error(
+                f"Member {member_id} Spotify auth invalid, skipping artist update"
+            )
+            return []
+        raise self.retry(exc=e)
 
     artists_external_id_mapping = {
         artist.external_id: artist
@@ -89,11 +102,17 @@ def _get_valid_staff_member():
         role=Member.RoleOptions.STAFF,
         spotify_provider__isnull=False,
     ):
-        handler = SpotifyAPIProviderHandler(
-            candidate.spotify_provider, member=candidate
-        )
-        if handler.refresh_token():
-            return candidate
+        try:
+            handler = SpotifyAPIProviderHandler(
+                candidate.spotify_provider, member=candidate
+            )
+            if handler.refresh_token():
+                return candidate
+        except ProviderException as e:
+            logger.warning(
+                f"Staff member {candidate.id} token error ({e.code}), trying next candidate"
+            )
+            continue
     return None
 
 
@@ -155,6 +174,18 @@ def collect_member_recently_play_logs(self, member_id):
         # Spotify can only get up to 1 day of recently played logs
         service.collect_recently_played_logs(days=3)
         logger.info(f"Collected logs for member {member.id}")
+    except ProviderException as e:
+        if e.code == ResponseCode.EXTERNAL_API_REAUTH_REQUIRED or e.status_code in {
+            401,
+            403,
+        }:
+            sentry_sdk.capture_exception(e, extras={'member_id': member_id})
+            logger.error(
+                f"Member {member_id} Spotify auth invalid, skipping playlog collection"
+            )
+            return
+        logger.warning(f"Failed to collect logs for member {member_id}: {e}")
+        raise self.retry(exc=e)
     except Exception as e:
         logger.warning(f"Failed to collect logs for member {member_id}: {e}")
         raise self.retry(exc=e)
@@ -171,8 +202,8 @@ def collect_all_members_recently_played_logs():
         collect_member_recently_play_logs.delay(member.id)
 
 
-@shared_task(queue='playlog_q')
-def update_playlist_context_details(context_ids, member_id):
+@shared_task(bind=True, max_retries=3, default_retry_delay=60, queue='playlog_q')
+def update_playlist_context_details(self, context_ids, member_id):
     """
     更新 playlist context 的 details（異步任務）
 
@@ -191,12 +222,22 @@ def update_playlist_context_details(context_ids, member_id):
         logger.error(f"Member {member_id} has no spotify_provider assigned")
         return []
 
-    handler = SpotifyAPIProviderHandler(provider, member=member)
-
-    # 呼叫 service 處理業務邏輯
-    updated = HistoryPlayLogContextService.update_playlist_details(
-        context_ids, handler.api_interface
-    )
+    try:
+        handler = SpotifyAPIProviderHandler(provider, member=member)
+        updated = HistoryPlayLogContextService.update_playlist_details(
+            context_ids, handler.api_interface
+        )
+    except ProviderException as e:
+        if e.code == ResponseCode.EXTERNAL_API_REAUTH_REQUIRED or e.status_code in {
+            401,
+            403,
+        }:
+            sentry_sdk.capture_exception(e, extras={'member_id': member_id})
+            logger.error(
+                f"Member {member_id} Spotify auth invalid, skipping context update"
+            )
+            return []
+        raise self.retry(exc=e)
 
     logger.info(f"Updated {len(updated)} playlist contexts")
     return updated

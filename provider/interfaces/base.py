@@ -6,19 +6,40 @@ from urllib.parse import urlencode
 
 import jwt
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from provider.exceptions import ProviderException
 from utils.constants import ResponseCode, ResponseMessage
 
 logger = logging.getLogger(__name__)
 
+RETRY_TOTAL = 3
+RETRY_BACKOFF_FACTOR = 5  # sleep: 0s, 5s, 10s between retries
+RETRY_STATUS_FORCELIST = [500, 502, 503, 504]
+
+
+def _build_retry_session():
+    session = requests.Session()
+    retry = Retry(
+        total=RETRY_TOTAL,
+        backoff_factor=RETRY_BACKOFF_FACTOR,
+        status_forcelist=RETRY_STATUS_FORCELIST,
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('https://', adapter)
+    session.mount('http://', adapter)
+    return session
+
 
 class BaseHttpClient(ABC):
     def handle_request(
         self, method, url, headers=None, params=None, data=None, json=None, **kwargs
     ):
+        session = _build_retry_session()
         try:
-            response = requests.request(
+            response = session.request(
                 method=method,
                 url=url,
                 headers=headers,
@@ -34,7 +55,9 @@ class BaseHttpClient(ABC):
 
     def handle_error(self, exception, response=None):
         error_data = {}
+        http_status_code = None
         if response is not None:
+            http_status_code = response.status_code
             try:
                 error_data = response.json()
             except Exception:
@@ -59,6 +82,7 @@ class BaseHttpClient(ABC):
             code=ResponseCode.EXTERNAL_API_ERROR,
             message=ResponseMessage.EXTERNAL_API_ERROR,
             details=error_data,
+            status_code=http_status_code,
         )
 
     def build_url_with_params(self, url, params):

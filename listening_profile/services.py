@@ -92,21 +92,12 @@ class HistoryPlayLogContextService:
                 playlist_data = api_interface.get_playlist(context.external_id)
                 playlist_data_map[context.external_id] = playlist_data
             except ProviderException as e:
-                # 檢查 details 中是否有 404 相關訊息（Spotify 官方歌單會回 404）
-                details = getattr(e, 'details', {})
-                error_status = (
-                    details.get('error', {}).get('status')
-                    if isinstance(details.get('error'), dict)
-                    else None
-                )
-
-                # 404 錯誤代表是 Spotify 官方歌單
-                if error_status == 404 or '404' in str(details):
+                if e.status_code == 404:
                     official_playlist_ids.append(context.external_id)
                     logger.info(f"Playlist {context.external_id} is official (404)")
                 else:
                     logger.warning(
-                        f"Failed to fetch playlist {context.external_id}: {e}, details: {details}"
+                        f"Failed to fetch playlist {context.external_id}: {e.status_code} {e}"
                     )
             except Exception as e:
                 logger.warning(

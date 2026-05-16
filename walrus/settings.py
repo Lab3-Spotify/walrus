@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from datetime import timedelta
 
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -225,3 +229,13 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 SPOTIFY_LISTENING_PROFILE_DAYS = 30
 
 HERON_BASE_URL = os.environ.get('HERON_BASE_URL')
+
+# GlitchTip / Sentry
+GLITCHTIP_DSN = os.environ.get('GLITCHTIP_DSN', '')
+if GLITCHTIP_DSN:
+    sentry_sdk.init(
+        dsn=GLITCHTIP_DSN,
+        integrations=[DjangoIntegration(), CeleryIntegration()],
+        traces_sample_rate=0.0,
+        send_default_pii=False,
+    )

@@ -7,6 +7,8 @@ from provider.exceptions import ProviderException
 from provider.models import MemberAPIToken, ProviderProxyAccountAPIToken
 from utils.constants import ResponseCode, ResponseMessage
 
+TOKEN_INVALID_STATUS_CODES = {401, 403}
+
 
 class BaseAuthProviderHandler(ABC):
     EXPIRE_IN_BUFFER = 60  # 1 分鐘的 buffer，確保 cache 比實際 token 更早過期
@@ -173,6 +175,57 @@ class BaseAPIProviderHandler(ABC):
                 message=f"Unable to obtain access token for {self.member.email if self.member else self.proxy_account.code} ({account_type})",
             )
         return access_token
+
+    def get_verified_access_token(self):
+        """
+        取得 access token 並透過呼叫 provider API 驗證有效性。
+        token 無效時嘗試 refresh，refresh 後仍無效則清除 DB + cache 並要求重新授權。
+        5xx / 網路錯誤不視為 token 失效，直接往上拋。
+        """
+        access_token = self.get_access_token()
+
+        if self._is_token_valid(access_token):
+            return access_token
+
+        # token 被 provider 拒絕，先清 cache 再嘗試 refresh
+        self._invalidate_cache()
+        new_token = self.refresh_token()
+
+        if new_token and self._is_token_valid(new_token):
+            return new_token
+
+        # refresh 失敗或 refresh 後的 token 仍無效，清除 DB + cache 要求重新授權
+        self._invalidate_cache()
+        self._invalidate_db()
+        raise ProviderException(
+            code=ResponseCode.EXTERNAL_API_REAUTH_REQUIRED,
+            message=ResponseMessage.EXTERNAL_API_REAUTH_REQUIRED,
+        )
+
+    @abstractmethod
+    def _is_token_valid(self, access_token: str) -> bool:
+        """透過呼叫 provider API 驗證 token 是否有效。
+        401/403 → return False；5xx / 網路錯誤 → re-raise ProviderException。
+        """
+        raise NotImplementedError('Subclasses must implement _is_token_valid')
+
+    def _invalidate_cache(self):
+        if self.member:
+            MemberAPITokenCache.delete_token(self.member.id, self.provider.code)
+        else:
+            ProviderProxyAccountAPITokenCache.delete_token(
+                self.proxy_account.code, self.provider.code
+            )
+
+    def _invalidate_db(self):
+        if self.member:
+            MemberAPIToken.objects.filter(
+                member=self.member, provider=self.provider
+            ).delete()
+        else:
+            ProviderProxyAccountAPIToken.objects.filter(
+                proxy_account=self.proxy_account
+            ).delete()
 
     def refresh_token(self):
         if self.member:
