@@ -168,11 +168,20 @@ class SpotifyAPIProviderHandler(BaseAPIProviderHandler):
         return tracks
 
     def _is_token_valid(self, access_token: str) -> bool:
+        """
+        透過呼叫需要 playlist-read-private scope 的 endpoint 驗證 token 有效性。
+
+        不使用 /me 的原因：Spotify 對 /me 的授權驗證較寬鬆，用戶在 Spotify 撤銷應用程式
+        授權後，/me 仍可能回傳 200，但存取私人資源（如 private playlist）已是 403。
+        因此改用 GET /me/playlists 作為驗證依據，確保 token 確實具備業務所需的 scope 存取權。
+
+        參考：https://github.com/spotify/web-api/issues/600
+        """
         try:
             SpotifyAPIProviderInterface(
                 provider=self.provider,
                 access_token=access_token,
-            ).get_me()
+            ).get_user_playlists(limit=1)
             return True
         except ProviderException as e:
             if e.status_code in TOKEN_INVALID_STATUS_CODES:

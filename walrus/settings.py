@@ -238,4 +238,5 @@ if GLITCHTIP_DSN:
         integrations=[DjangoIntegration(), CeleryIntegration()],
         traces_sample_rate=0.0,
         send_default_pii=False,
+        environment=ENV,
     )
