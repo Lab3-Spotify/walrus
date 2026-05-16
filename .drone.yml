@@ -56,13 +56,15 @@
   - "push"
 "type": "kubernetes"
 ---
+"depends_on":
+- "walrus-test"
 "kind": "pipeline"
-"name": "walrus-deploy"
+"name": "walrus-build"
 "node":
   "repo": "Lab3-Spotify-walrus"
 "steps":
 - "image": "plugins/docker"
-  "name": "build and push docker image"
+  "name": "build"
   "settings":
     "build_args":
     - "BUILDKIT_INLINE_CACHE=1"
@@ -73,20 +75,81 @@
       "from_secret": "docker-password"
     "repo": "lislab3morris/walrus"
     "tags":
-    - "latest"
-    - "${DRONE_COMMIT_SHA}"
+    - "test-${DRONE_COMMIT_SHA}"
     "username":
       "from_secret": "docker-username"
+"trigger":
+  "branch":
+  - "master"
+  "event":
+  - "push"
+"type": "kubernetes"
+---
+"depends_on":
+- "walrus-build"
+"kind": "pipeline"
+"name": "walrus-publish"
+"node":
+  "repo": "Lab3-Spotify-walrus"
+"steps":
 - "commands":
-  - "kubectl set image deployment/walrus walrus=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl set image deployment/walrus-celery-playlog walrus-celery-playlog=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl set image deployment/walrus-celery-beat walrus-celery-beat=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl rollout status deployment/walrus --namespace=walrus || exit 1"
-  - "kubectl rollout status deployment/walrus-celery-playlog --namespace=walrus || exit 1"
-  - "kubectl rollout status deployment/walrus-celery-beat --namespace=walrus || exit 1"
-  - "echo Deployment success!"
+  - "regctl registry login registry-1.docker.io -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
+  - "regctl image copy lislab3morris/walrus:test-${DRONE_COMMIT_SHA} lislab3morris/walrus:${DRONE_COMMIT_SHA}"
+  - "regctl image copy lislab3morris/walrus:test-${DRONE_COMMIT_SHA} lislab3morris/walrus:latest"
+  - "regctl tag delete lislab3morris/walrus:test-${DRONE_COMMIT_SHA}"
+  "environment":
+    "DOCKER_PASSWORD":
+      "from_secret": "docker-password"
+    "DOCKER_USERNAME":
+      "from_secret": "docker-username"
+  "image": "regclient/regctl:edge-alpine"
+  "name": "promote"
+"trigger":
+  "branch":
+  - "master"
+  "event":
+  - "push"
+"type": "kubernetes"
+---
+"depends_on":
+- "walrus-publish"
+"kind": "pipeline"
+"name": "walrus-deploy"
+"node":
+  "repo": "Lab3-Spotify-walrus"
+"steps":
+- "commands":
+  - "kubectl rollout restart deployment/walrus -n walrus"
+  - "kubectl rollout restart deployment/walrus-celery-playlog -n walrus"
+  - "kubectl rollout restart deployment/walrus-celery-beat -n walrus"
   "image": "bitnami/kubectl"
-  "name": "deploy to k8s"
+  "name": "deploy"
+- "commands":
+  - "kubectl rollout status deployment/walrus -n walrus --timeout=120s || exit 1"
+  - "kubectl rollout status deployment/walrus-celery-playlog -n walrus --timeout=120s || exit 1"
+  - "kubectl rollout status deployment/walrus-celery-beat -n walrus --timeout=120s || exit 1"
+  "image": "bitnami/kubectl"
+  "name": "verify"
+- "commands":
+  - "apk add --no-cache curl jq"
+  - |
+    TOKEN=$(curl -s -X POST "https://hub.docker.com/v2/users/login" \
+      -H "Content-Type: application/json" \
+      -d "{\"username\":\"$DOCKER_USERNAME\",\"password\":\"$DOCKER_PASSWORD\"}" \
+      | jq -r .token)
+    curl -s "https://hub.docker.com/v2/repositories/lislab3morris/walrus/tags/?page_size=100" \
+      -H "Authorization: JWT $TOKEN" \
+      | jq -r '[.results[] | select(.name | test("^[0-9a-f]{40}$")) | .name] | .[5:] | .[]' \
+      | xargs -r -I{} curl -s -X DELETE \
+        "https://hub.docker.com/v2/repositories/lislab3morris/walrus/tags/{}/" \
+        -H "Authorization: JWT $TOKEN"
+  "environment":
+    "DOCKER_PASSWORD":
+      "from_secret": "docker-password"
+    "DOCKER_USERNAME":
+      "from_secret": "docker-username"
+  "image": "alpine:3"
+  "name": "cleanup-old-tags"
 "trigger":
   "branch":
   - "master"
