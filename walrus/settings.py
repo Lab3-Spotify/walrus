@@ -229,6 +229,8 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 SPOTIFY_LISTENING_PROFILE_DAYS = 30
 
+CLIP_DURATION_MS = int(os.environ.get('CLIP_DURATION_MS', 45000))
+
 HERON_BASE_URL = os.environ.get('HERON_BASE_URL')
 
 # GlitchTip / Sentry

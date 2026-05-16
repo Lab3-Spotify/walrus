@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from provider.models import Provider
@@ -68,8 +69,7 @@ class Track(models.Model):
 
     @property
     def clip_end_ms(self):
-        """固定的 clip 結束時間（毫秒）"""
-        return 45000
+        return settings.CLIP_DURATION_MS
 
 
 class TrackAudioFeatures(models.Model):
