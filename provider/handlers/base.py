@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import wraps
 
 from django.utils import timezone
 
@@ -8,6 +9,44 @@ from provider.models import MemberAPIToken, ProviderProxyAccountAPIToken
 from utils.constants import ResponseCode, ResponseMessage
 
 TOKEN_INVALID_STATUS_CODES = {401, 403}
+
+
+def with_reauth(fn):
+    """
+    裝飾器：業務 API call 收到 401/403 時，嘗試 refresh token 後重試一次。
+    重試後仍失敗則清除 DB + cache 並拋出 REAUTH_REQUIRED。
+
+    補足 _is_token_valid 無法即時偵測所有 token 撤銷情境的缺口
+    （Spotify 對不同 endpoint 的撤銷執行時機不一致，例如 /me 不會即時 403
+    但 /playlists/{id}/tracks 會）。
+    """
+
+    @wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return fn(self, *args, **kwargs)
+        except ProviderException as e:
+            if e.status_code not in TOKEN_INVALID_STATUS_CODES:
+                raise
+
+        self._invalidate_cache()
+        new_token = self.refresh_token()
+
+        if new_token:
+            try:
+                return fn(self, *args, **kwargs)
+            except ProviderException as e:
+                if e.status_code not in TOKEN_INVALID_STATUS_CODES:
+                    raise
+
+        self._invalidate_cache()
+        self._invalidate_db()
+        raise ProviderException(
+            code=ResponseCode.EXTERNAL_API_REAUTH_REQUIRED,
+            message=ResponseMessage.EXTERNAL_API_REAUTH_REQUIRED,
+        )
+
+    return wrapper
 
 
 class BaseAuthProviderHandler(ABC):

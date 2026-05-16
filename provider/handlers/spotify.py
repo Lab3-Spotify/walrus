@@ -11,6 +11,7 @@ from provider.handlers.base import (
     TOKEN_INVALID_STATUS_CODES,
     BaseAPIProviderHandler,
     BaseAuthProviderHandler,
+    with_reauth,
 )
 from provider.interfaces.spotify import (
     SpotifyAPIProviderInterface,
@@ -126,6 +127,7 @@ class SpotifyAPIProviderHandler(BaseAPIProviderHandler):
     # 使用 @member_only 防止 proxy_account 誤用
 
     @member_only
+    @with_reauth
     def fetch_recently_played_raw(self, after=None, before=None, limit=50):
         """
         獲取播放記錄（原始數據）
@@ -140,6 +142,7 @@ class SpotifyAPIProviderHandler(BaseAPIProviderHandler):
         )
 
     @member_only
+    @with_reauth
     def fetch_playlist_tracks(self, playlist_id, market='TW'):
         """
         獲取歌單中的所有歌曲（自動處理分頁）
