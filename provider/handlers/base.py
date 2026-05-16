@@ -30,7 +30,10 @@ def with_reauth(fn):
                 raise
 
         self._invalidate_cache()
-        new_token = self.refresh_token()
+        try:
+            new_token = self.refresh_token()
+        except ProviderException:
+            new_token = None
 
         if new_token:
             try:
@@ -228,7 +231,10 @@ class BaseAPIProviderHandler(ABC):
 
         # token 被 provider 拒絕，先清 cache 再嘗試 refresh
         self._invalidate_cache()
-        new_token = self.refresh_token()
+        try:
+            new_token = self.refresh_token()
+        except ProviderException:
+            new_token = None
 
         if new_token and self._is_token_valid(new_token):
             return new_token
