@@ -138,6 +138,12 @@ sequenceDiagram
 
 > **Token 加密**：`access_token` 與 `refresh_token` 以對稱加密（AES）儲存於資料庫，避免明文洩漏。
 
+### Token 失效自動處理
+
+業務 API 呼叫收到 **HTTP 401**（token 過期或被撤銷）時，系統會自動嘗試以 `refresh_token` 換取新的 `access_token` 並重試一次。重試後仍失敗，則清除 DB 與 Cache 中的 token，並回傳 `REAUTH_REQUIRED` 要求使用者重新授權。
+
+> **HTTP 403**（權限不足）不代表 token 失效，不會觸發自動刷新。
+
 ### 3. Spotify Proxy Account（播放帳號）
 
 實驗分為兩個階段，對 Spotify App 的使用限制不同：
@@ -280,6 +286,7 @@ Phase 2        [ 2 ]     [ 4 ]     [ 6 ]     [ 8 ]         ← 偶數位置
 | 容器化 | Docker / Docker Compose |
 | CI/CD | Drone CI |
 | 認證 | JWT（SimpleJWT） |
+| 錯誤追蹤 | GlitchTip（Sentry 相容） |
 
 ---
 
@@ -300,10 +307,10 @@ cp env/walrus-local.env.secret.example env/walrus-local.env.secret
 vim env/walrus-local.env.secret
 
 # 啟動所有服務
-docker compose -f backend-local.yml up -d
+docker compose -f docker-compose.local.yml up -d
 
 # 確認服務狀態
-docker compose -f backend-local.yml ps
+docker compose -f docker-compose.local.yml ps
 ```
 
 服務啟動後，系統會自動執行：
