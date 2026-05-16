@@ -1,24 +1,4 @@
 "kind": "pipeline"
-"name": "walrus-migration-check"
-"node":
-  "repo": "Lab3-Spotify-walrus"
-"steps":
-- "commands":
-  - "pip install poetry==1.6.1 poetry-plugin-export"
-  - "poetry export -f requirements.txt --without-hashes -o requirements.txt"
-  - "pip install -r requirements.txt || exit 1"
-  - "python manage.py check || exit 1"
-  - "python manage.py makemigrations --dry-run --check"
-  "environment":
-    "DJANGO_SECRET_KEY": "MIGRATION_CHECK_PIPELINE_SUPER_SECRET"
-  "image": "python:3.10.13-slim"
-  "name": "migration-dry-run"
-"trigger":
-  "event":
-  - "pull_request"
-"type": "kubernetes"
----
-"kind": "pipeline"
 "name": "walrus-test"
 "node":
   "repo": "Lab3-Spotify-walrus"
@@ -36,6 +16,8 @@
   - "pip install poetry==1.6.1 poetry-plugin-export"
   - "poetry export -f requirements.txt --without-hashes -o requirements.txt"
   - "pip install -r requirements.txt || exit 1"
+  - "python ci/wait-for-db.py"
+  - "python ci/wait-for-redis.py"
   - "python manage.py test || exit 1"
   "environment":
     "DJANGO_SECRET_KEY": "TEST_PIPELINE_SUPER_SECRET"
@@ -56,13 +38,15 @@
   - "push"
 "type": "kubernetes"
 ---
+"depends_on":
+- "walrus-test"
 "kind": "pipeline"
-"name": "walrus-deploy"
+"name": "walrus-build"
 "node":
   "repo": "Lab3-Spotify-walrus"
 "steps":
 - "image": "plugins/docker"
-  "name": "build and push docker image"
+  "name": "build"
   "settings":
     "build_args":
     - "BUILDKIT_INLINE_CACHE=1"
@@ -73,20 +57,72 @@
       "from_secret": "docker-password"
     "repo": "lislab3morris/walrus"
     "tags":
-    - "latest"
-    - "${DRONE_COMMIT_SHA}"
+    - "test-${DRONE_COMMIT_SHA}"
     "username":
       "from_secret": "docker-username"
+"trigger":
+  "branch":
+  - "master"
+  "event":
+  - "push"
+"type": "kubernetes"
+---
+"depends_on":
+- "walrus-build"
+"kind": "pipeline"
+"name": "walrus-publish"
+"node":
+  "repo": "Lab3-Spotify-walrus"
+"steps":
 - "commands":
-  - "kubectl set image deployment/walrus walrus=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl set image deployment/walrus-celery-playlog walrus-celery-playlog=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl set image deployment/walrus-celery-beat walrus-celery-beat=lislab3morris/walrus:${DRONE_COMMIT_SHA} --namespace=walrus || exit 1"
-  - "kubectl rollout status deployment/walrus --namespace=walrus || exit 1"
-  - "kubectl rollout status deployment/walrus-celery-playlog --namespace=walrus || exit 1"
-  - "kubectl rollout status deployment/walrus-celery-beat --namespace=walrus || exit 1"
-  - "echo Deployment success!"
+  - "regctl registry login registry-1.docker.io -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
+  - "regctl image copy lislab3morris/walrus:test-${DRONE_COMMIT_SHA} lislab3morris/walrus:${DRONE_COMMIT_SHA}"
+  - "regctl image copy lislab3morris/walrus:test-${DRONE_COMMIT_SHA} lislab3morris/walrus:latest"
+  - "regctl tag delete lislab3morris/walrus:test-${DRONE_COMMIT_SHA}"
+  "environment":
+    "DOCKER_PASSWORD":
+      "from_secret": "docker-password"
+    "DOCKER_USERNAME":
+      "from_secret": "docker-username"
+  "image": "regclient/regctl:edge-alpine"
+  "name": "promote"
+"trigger":
+  "branch":
+  - "master"
+  "event":
+  - "push"
+"type": "kubernetes"
+---
+"depends_on":
+- "walrus-publish"
+"kind": "pipeline"
+"name": "walrus-deploy"
+"node":
+  "repo": "Lab3-Spotify-walrus"
+"steps":
+- "commands":
+  - "kubectl rollout restart deployment/walrus -n walrus || exit 1"
+  - "kubectl rollout restart deployment/walrus-celery-playlog -n walrus || exit 1"
+  - "kubectl rollout restart deployment/walrus-celery-beat -n walrus || exit 1"
   "image": "bitnami/kubectl"
-  "name": "deploy to k8s"
+  "name": "deploy"
+- "commands":
+  - "kubectl rollout status deployment/walrus -n walrus --timeout=120s || exit 1"
+  - "kubectl rollout status deployment/walrus-celery-playlog -n walrus --timeout=120s || exit 1"
+  - "kubectl rollout status deployment/walrus-celery-beat -n walrus --timeout=120s || exit 1"
+  "image": "bitnami/kubectl"
+  "name": "verify"
+- "commands":
+  - "apk add --no-cache curl jq"
+  - "sh ci/cleanup-dockerhub.sh"
+  "environment":
+    "DOCKER_PASSWORD":
+      "from_secret": "docker-password"
+    "DOCKER_USERNAME":
+      "from_secret": "docker-username"
+    "REPO_PATH": "lislab3morris/walrus"
+  "image": "alpine:3"
+  "name": "cleanup-old-tags"
 "trigger":
   "branch":
   - "master"
