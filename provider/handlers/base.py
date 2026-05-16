@@ -8,7 +8,7 @@ from provider.exceptions import ProviderException
 from provider.models import MemberAPIToken, ProviderProxyAccountAPIToken
 from utils.constants import ResponseCode, ResponseMessage
 
-TOKEN_INVALID_STATUS_CODES = {401, 403}
+TOKEN_INVALID_STATUS_CODES = {401}
 
 
 def with_reauth(fn):
@@ -209,12 +209,15 @@ class BaseAPIProviderHandler(ABC):
         if access_token:
             return access_token
 
-        access_token = self.refresh_token()
+        try:
+            access_token = self.refresh_token()
+        except ProviderException:
+            access_token = None
+
         if not access_token:
-            account_type = 'member' if self.member else 'proxy account'
             raise ProviderException(
-                code=ResponseCode.EXTERNAL_API_ACCESS_TOKEN_NOT_FOUND,
-                message=f"Unable to obtain access token for {self.member.email if self.member else self.proxy_account.code} ({account_type})",
+                code=ResponseCode.EXTERNAL_API_REAUTH_REQUIRED,
+                message=ResponseMessage.EXTERNAL_API_REAUTH_REQUIRED,
             )
         return access_token
 
